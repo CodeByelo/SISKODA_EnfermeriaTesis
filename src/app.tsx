@@ -1,5 +1,5 @@
 // src/App.tsx
-import { HashRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import NuevaConsulta from "./pages/nueva-consulta";
 import ConsultasHoy from "./pages/consultas-hoy";
@@ -16,7 +16,7 @@ import Register from "./pages/Login/Registro/registro";
 
 export default function App() {
   return (
-    <HashRouter>
+    <BrowserRouter>
       <Routes>
         {/* Ruta principal: Login */}
         <Route path="/" element={<Login />} />
@@ -37,6 +37,6 @@ export default function App() {
         <Route path="/inventario/nuevo" element={<NuevoInsumo />} />
         <Route path="/reportes" element={<Reportes />} />
       </Routes>
-    </HashRouter>
+    </BrowserRouter>
   );
 }
