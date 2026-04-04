@@ -83,7 +83,7 @@ export default function Register() {
         <div className="p-8">
           <div className="flex justify-center mb-6">
             <img
-              src="/ISUMlogo.png"
+              src={`${import.meta.env.BASE_URL}ISUMlogo.png`}
               alt="Logo ISUM"
               className="h-20 w-auto transition-all duration-300 hover:scale-105"
             />
