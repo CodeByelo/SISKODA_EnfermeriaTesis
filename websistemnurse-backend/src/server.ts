@@ -11,22 +11,38 @@ import authRouter from './authRouter';
 
 const app = express();
 const PORT = process.env.PORT || 4001;
+const normalizeOrigin = (value?: string) => value?.trim().replace(/\/$/, '');
+const envOrigins = (process.env.FRONTEND_URL ?? '')
+  .split(',')
+  .map((origin) => normalizeOrigin(origin))
+  .filter(Boolean) as string[];
 const allowedOrigins = [
-  process.env.FRONTEND_URL,
+  ...envOrigins,
   'http://localhost:5173',
   'http://localhost:4173',
-].filter(Boolean) as string[];
+  'https://siskoda-enfermeria-tesis.vercel.app',
+].map((origin) => normalizeOrigin(origin) as string);
+const allowedOriginPatterns = [/^https:\/\/.*\.vercel\.app$/];
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      const normalizedOrigin = normalizeOrigin(origin);
+      const isAllowedByList =
+        !!normalizedOrigin && allowedOrigins.includes(normalizedOrigin);
+      const isAllowedByPattern =
+        !!normalizedOrigin &&
+        allowedOriginPatterns.some((pattern) => pattern.test(normalizedOrigin));
+
+      if (!origin || isAllowedByList || isAllowedByPattern) {
         callback(null, true);
         return;
       }
 
       callback(new Error('Origen no permitido por CORS'));
     },
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
 app.use(express.json({ limit: '10mb' }));
