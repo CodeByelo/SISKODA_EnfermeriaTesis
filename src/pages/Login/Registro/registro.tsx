@@ -1,9 +1,11 @@
-﻿import { useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import LiquidEther from '../../../components/LiquidEther';
 import { API_URL } from '../../../config/api';
+import { useAuth } from '../../../contexts/auth-context';
+
+const LiquidEther = lazy(() => import('../../../components/LiquidEther'));
 
 interface FormData {
   email: string;
@@ -20,6 +22,13 @@ export default function Register() {
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<boolean>(false);
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -31,7 +40,7 @@ export default function Register() {
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
-      setError('Por favor, ingresa un correo electrónico válido.');
+      setError('Por favor, ingresa un correo electronico valido.');
       return;
     }
 
@@ -39,10 +48,10 @@ export default function Register() {
       await axios.post(`${API_URL}/api/auth/register`, formData);
       setSuccess(true);
       setError('');
-      setTimeout(() => navigate('/'), 2000);
-    } catch (err: any) {
-      if (err.response?.data?.error) {
-        setError(err.response.data.error);
+      setTimeout(() => navigate('/', { replace: true }), 2000);
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.data?.error) {
+        setError(err.response.data.error as string);
       } else {
         setError('Error al registrar. Intenta nuevamente.');
       }
@@ -52,23 +61,25 @@ export default function Register() {
   return (
     <div className="min-h-screen relative overflow-hidden">
       <div className="absolute inset-0 z-0">
-        <LiquidEther
-          colors={['#5227FF', '#FF9FFC', '#B19EEF']}
-          mouseForce={20}
-          cursorSize={100}
-          isViscous={false}
-          viscous={30}
-          iterationsViscous={32}
-          iterationsPoisson={32}
-          resolution={0.5}
-          isBounce={false}
-          autoDemo={true}
-          autoSpeed={0.5}
-          autoIntensity={2.2}
-          takeoverDuration={0.25}
-          autoResumeDelay={3000}
-          autoRampDuration={0.6}
-        />
+        <Suspense fallback={<div className="h-full w-full bg-slate-950" />}>
+          <LiquidEther
+            colors={['#5227FF', '#FF9FFC', '#B19EEF']}
+            mouseForce={20}
+            cursorSize={100}
+            isViscous={false}
+            viscous={30}
+            iterationsViscous={32}
+            iterationsPoisson={32}
+            resolution={0.5}
+            isBounce={false}
+            autoDemo={true}
+            autoSpeed={0.5}
+            autoIntensity={2.2}
+            takeoverDuration={0.25}
+            autoResumeDelay={3000}
+            autoRampDuration={0.6}
+          />
+        </Suspense>
       </div>
 
       <div className="min-h-screen flex items-center justify-center p-4 relative z-10">
@@ -89,13 +100,13 @@ export default function Register() {
             </p>
             {success ? (
               <div className="bg-green-900/50 text-green-200 p-4 rounded-lg text-center border border-green-600">
-                ¡Registro exitoso! Redirigiendo al login...
+                Registro exitoso. Redirigiendo al login...
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1">
-                    Correo Electrónico
+                    Correo Electronico
                   </label>
                   <input
                     id="email"
@@ -109,12 +120,12 @@ export default function Register() {
                 </div>
                 <div>
                   <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1">
-                    Contraseña
+                    Contrasena
                   </label>
                   <input
                     id="password"
                     type="password"
-                    placeholder="••••••••"
+                    placeholder="********"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     className="w-full px-4 py-3 bg-gray-700/50 text-white placeholder-gray-400 border-2 border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
@@ -144,7 +155,7 @@ export default function Register() {
                   type="submit"
                   className="w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-lg shadow-lg hover:from-purple-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all transform hover:scale-105 flex items-center justify-center"
                 >
-                  <span className="mr-2">REGISTRAR</span>
+                  REGISTRAR
                 </button>
               </form>
             )}

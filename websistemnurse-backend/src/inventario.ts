@@ -91,8 +91,9 @@ router.post('/', async (req, res) => {
       ]
     );
     res.status(201).json(result.rows[0]);
-  } catch (err: any) {
-    if (err.message?.includes('unique constraint')) {
+  } catch (err: unknown) {
+    const error = err instanceof Error ? err : new Error('Error desconocido');
+    if (error.message.includes('unique constraint')) {
       return res.status(409).json({ error: 'Ya existe un insumo con ese nombre' });
     }
     console.error('Error al crear insumo:', err);

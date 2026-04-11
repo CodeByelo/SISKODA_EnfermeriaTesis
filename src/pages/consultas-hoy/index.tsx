@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { buildApiUrl } from "../../config/api";
+import { useNavigate } from "react-router-dom";
+import { authFetch } from "../../lib/auth";
 
 interface ConsultaHoy {
   id: number;
@@ -12,13 +13,14 @@ interface ConsultaHoy {
 }
 
 export default function ConsultasHoy() {
+  const nav = useNavigate();
   const [list, setList] = useState<ConsultaHoy[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
 
   const fetchHoy = async () => {
     try {
-      const res = await fetch(buildApiUrl('/api/consultas-hoy'));
+      const res = await authFetch('/api/consultas-hoy');
       const data = await res.json();
       setList(Array.isArray(data) ? data : []); // seguridad
     } catch (err) {
@@ -59,7 +61,7 @@ export default function ConsultasHoy() {
     Actualizar
   </button>
   <button
-    onClick={() => window.location.href = "/dashboard"}
+    onClick={() => nav("/dashboard")}
     className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition"
   >
     Volver al Inicio

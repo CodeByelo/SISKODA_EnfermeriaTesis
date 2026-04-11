@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Insumo } from './types';
-import { buildApiUrl } from '../../config/api';
+import { authFetch } from '../../lib/auth';
 
 export default function Inventario() {
   const nav = useNavigate();
@@ -12,7 +12,7 @@ export default function Inventario() {
 
   const fetchInsumos = async () => {
     try {
-      const res = await fetch(buildApiUrl('/api/inventario'));
+      const res = await authFetch('/api/inventario');
       const data = await res.json();
       setInsumos(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -46,7 +46,7 @@ export default function Inventario() {
     if (!confirm('¿Está seguro de eliminar este insumo?')) return;
 
     try {
-      const res = await fetch(buildApiUrl(`/api/inventario/${id}`), {
+      const res = await authFetch(`/api/inventario/${id}`, {
         method: 'DELETE',
       });
       if (res.ok) {

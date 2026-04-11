@@ -1,49 +1,76 @@
 // src/pages/expedientes/historial.tsx
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import axios from 'axios';
-import { API_URL } from '../../config/api';
+import api from '../../services/api';
+import { authFetch } from '../../lib/auth';
+import type { Expediente } from './types';
+
+type Consulta = {
+  id: number;
+  motivo: string;
+  sintomas: string | null;
+  diagnostico: string | null;
+  medicamentos: string | null;
+  notas_recom: string | null;
+  prioridad: string;
+  creado_en: string;
+};
+
+type InventarioMedicamento = {
+  id: number;
+  nombre: string;
+  cantidad_disponible: number;
+};
+
+type ConsultaPayload = {
+  motivo: string;
+  sintomas: string;
+  diagnostico: string;
+  medicamentos: string[] | string;
+  notas_recom: string;
+  prioridad: string;
+};
 
 export default function HistorialPaciente() {
   const nav = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const [paciente, setPaciente] = useState<any>(null);
-  const [consultas, setConsultas] = useState<any[]>([]);
+  const [paciente, setPaciente] = useState<Expediente | null>(null);
+  const [consultas, setConsultas] = useState<Consulta[]>([]);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
-  const [editandoConsulta, setEditandoConsulta] = useState<any>(null);
-  const [inventario, setInventario] = useState<any[]>([]);
+  const [editandoConsulta, setEditandoConsulta] = useState<Consulta | null>(null);
+  const [inventario, setInventario] = useState<InventarioMedicamento[]>([]);
   const [errorInventario, setErrorInventario] = useState<string | null>(null);
 
-  const fetchPaciente = async () => {
+  const fetchPaciente = useCallback(async () => {
     try {
-      const res = await fetch(`${API_URL}/api/expedientes/${id}`);
+      const res = await authFetch(`/api/expedientes/${id}`);
       if (res.ok) {
-        const data = await res.json();
+        const data = await res.json() as Expediente;
         setPaciente(data);
       }
     } catch (err) {
       console.error(err);
     }
-  };
+  }, [id]);
 
-  const fetchConsultas = async () => {
+  const fetchConsultas = useCallback(async () => {
     try {
-      const res = await fetch(`${API_URL}/api/consultas?paciente_id=${id}`);
+      const res = await authFetch(`/api/consultas?paciente_id=${id}`);
       if (res.ok) {
-        const data = await res.json();
+        const data = await res.json() as Consulta[];
         setConsultas(data);
       }
     } catch (err) {
       console.error(err);
     }
-  };
+  }, [id]);
 
   // 🔥 Cargar inventario al montar el componente
   useEffect(() => {
     const cargarInventario = async () => {
       try {
-        const respuesta = await axios.get(`${API_URL}/api/inventario/medicamentos`);
-        setInventario(respuesta.data);
+        const respuesta = await api.get('/api/inventario/medicamentos');
+        setInventario(respuesta.data as InventarioMedicamento[]);
       } catch (error) {
         console.error('Error al cargar el inventario:', error);
         setErrorInventario('No se pudo cargar la lista de medicamentos');
@@ -58,11 +85,11 @@ export default function HistorialPaciente() {
       fetchPaciente();
       fetchConsultas();
     }
-  }, [id]);
+  }, [id, fetchConsultas, fetchPaciente]);
 
-  const enviarNuevaConsulta = async (datos: any) => {
+  const enviarNuevaConsulta = async (datos: ConsultaPayload) => {
     try {
-      const response = await fetch(`${API_URL}/api/consultas`, {
+      const response = await authFetch(`/api/consultas`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -70,7 +97,9 @@ export default function HistorialPaciente() {
           motivo: datos.motivo,
           sintomas: datos.sintomas,
           diagnostico: datos.diagnostico,
-          medicamentos: datos.medicamentos.join('\n'),
+          medicamentos: Array.isArray(datos.medicamentos)
+            ? datos.medicamentos.join('\n')
+            : datos.medicamentos,
           notas_recom: datos.notas_recom,
           prioridad: datos.prioridad,
         }),
@@ -91,9 +120,9 @@ export default function HistorialPaciente() {
     }
   };
 
-  const guardarEdicionConsulta = async (consultaId: number, datos: any) => {
+  const guardarEdicionConsulta = async (consultaId: number, datos: ConsultaPayload) => {
     try {
-      const response = await fetch(`${API_URL}/api/consultas/${consultaId}`, {
+      const response = await authFetch(`/api/consultas/${consultaId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -123,7 +152,7 @@ export default function HistorialPaciente() {
     if (!confirm('¿Estás seguro de eliminar esta consulta?')) return;
 
     try {
-      const res = await fetch(`${API_URL}/api/consultas/${consultaId}`, {
+      const res = await authFetch(`/api/consultas/${consultaId}`, {
         method: 'DELETE',
       });
 
@@ -307,8 +336,8 @@ export default function HistorialPaciente() {
                   >
                     <option value="">— Seleccionar medicamento —</option>
                     {inventario
-                      .filter((item: any) => item.cantidad_disponible > 0)
-                      .map((item: any) => (
+                      .filter((item) => item.cantidad_disponible > 0)
+                      .map((item) => (
                         <option key={item.id} value={`${item.nombre}|${item.id}`}>
                           {item.nombre} ({item.cantidad_disponible} disponibles)
                         </option>

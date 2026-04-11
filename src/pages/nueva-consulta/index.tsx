@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../../services/api";
-import { buildApiUrl } from "../../config/api";
+import { authFetch } from "../../lib/auth";
 import type { ConsultaForm } from "./types";
 
 const pasoInicial = 1;
@@ -36,7 +36,7 @@ export default function NuevaConsulta() {
 
   useEffect(() => {
     if (paciente_id) {
-      fetch(buildApiUrl(`/api/expedientes/${paciente_id}`))
+      authFetch(`/api/expedientes/${paciente_id}`)
         .then(res => res.json())
         .then(data => {
           setForm({
@@ -67,7 +67,7 @@ export default function NuevaConsulta() {
 
   const checkIfPacienteExists = async (carnet: string, tipo: string) => {
     try {
-      const res = await fetch(buildApiUrl(`/api/expedientes/check?carnet=${carnet}&tipo=${tipo}`));
+      const res = await authFetch(`/api/expedientes/check?carnet=${encodeURIComponent(carnet)}&tipo=${encodeURIComponent(tipo)}`);
       const data = await res.json();
       return data.exists;
     } catch (err) {
@@ -108,7 +108,7 @@ export default function NuevaConsulta() {
       await api.post("/api/consultas", payload);
       alert("✅ Consulta guardada");
       nav("/consultas-hoy");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error al enviar:", error);
       alert("❌ Error al guardar. Revise la consola.");
     }
@@ -196,7 +196,7 @@ export default function NuevaConsulta() {
 
         <div className="flex justify-between mt-8">
           <div className="flex gap-3">
-            <button onClick={() => window.location.href = "/dashboard"} className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg">Volver al Inicio</button>
+            <button onClick={() => nav("/dashboard")} className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg">Volver al Inicio</button>
             <button onClick={anterior} disabled={paso === 1} className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg disabled:opacity-50">Anterior</button>
           </div>
           <button onClick={paso === 4 ? enviar : siguiente} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">

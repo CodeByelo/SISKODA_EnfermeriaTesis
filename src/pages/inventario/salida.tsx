@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Insumo, MovimientoSalida } from './types';
-import { buildApiUrl } from '../../config/api';
+import { authFetch } from '../../lib/auth';
 
 export default function SalidaInventario() {
   const nav = useNavigate();
@@ -17,7 +17,7 @@ export default function SalidaInventario() {
 
   const fetchInsumos = async () => {
     try {
-      const res = await fetch(buildApiUrl('/api/inventario'));
+      const res = await authFetch('/api/inventario');
       const data = await res.json();
       // Solo insumos con stock > 0
       setInsumos((Array.isArray(data) ? data : []).filter(i => i.stock_actual > 0));
@@ -51,7 +51,7 @@ export default function SalidaInventario() {
     }
 
     try {
-      const res = await fetch(buildApiUrl('/api/inventario/salida'), {
+      const res = await authFetch('/api/inventario/salida', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),

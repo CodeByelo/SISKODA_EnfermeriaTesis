@@ -1,7 +1,7 @@
 // src/pages/inventario/nuevo.tsx
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { buildApiUrl } from '../../config/api';
+import { authFetch } from '../../lib/auth';
 
 export default function NuevoInsumo() {
   const nav = useNavigate();
@@ -28,7 +28,7 @@ export default function NuevoInsumo() {
     }
 
     try {
-      const res = await fetch(buildApiUrl('/api/inventario'), {
+      const res = await authFetch('/api/inventario', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

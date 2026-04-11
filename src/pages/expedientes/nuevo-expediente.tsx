@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ExpedienteForm } from "./types";
-import { buildApiUrl } from "../../config/api";
+import { authFetch } from "../../lib/auth";
 
 const nullIfEmpty = (s: string) => (s.trim() === "" ? null : s.trim());
 
@@ -31,7 +31,7 @@ export default function NuevoExpediente() {
 
   const guardar = async () => {
     if (!form.tipo_paciente || !form.nombre.trim() || !form.apellido.trim()) {
-      alert("⚠️ Tipo, nombre y apellido son obligatorios");
+      alert("Tipo, nombre y apellido son obligatorios");
       return;
     }
 
@@ -47,16 +47,22 @@ export default function NuevoExpediente() {
     };
 
     try {
-      await fetch(buildApiUrl('/api/expedientes'), {
+      const res = await authFetch("/api/expedientes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      alert("✅ Expediente creado");
+
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.error || "No se pudo crear el expediente");
+      }
+
+      alert("Expediente creado");
       nav("/expedientes");
     } catch (err) {
       console.error(err);
-      alert("❌ Error al guardar");
+      alert(err instanceof Error ? err.message : "Error al guardar");
     }
   };
 
@@ -65,7 +71,6 @@ export default function NuevoExpediente() {
       <div className="max-w-3xl mx-auto bg-white rounded-xl shadow p-8">
         <h1 className="text-2xl font-bold text-gray-800 mb-6">Nuevo Expediente</h1>
 
-        {/* Tipo */}
         <div className="mb-4">
           <label className="block mb-2 font-medium text-gray-700">Tipo de paciente *</label>
           <select
@@ -81,7 +86,6 @@ export default function NuevoExpediente() {
           </select>
         </div>
 
-        {/* Nombre / Apellido */}
         <div className="grid grid-cols-2 gap-4 mb-4">
           <input
             name="nombre"
@@ -99,7 +103,6 @@ export default function NuevoExpediente() {
           />
         </div>
 
-        {/* Email / Teléfono */}
         <div className="grid grid-cols-2 gap-4 mb-4">
           <input
             name="email"
@@ -112,12 +115,11 @@ export default function NuevoExpediente() {
             name="telefono"
             value={form.telefono}
             onChange={handleChange}
-            placeholder="Teléfono"
+            placeholder="Telefono"
             className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
           />
         </div>
 
-        {/* Estudiante */}
         {form.tipo_paciente === "Estudiante" && (
           <>
             <input
@@ -137,14 +139,13 @@ export default function NuevoExpediente() {
           </>
         )}
 
-        {/* Profesor */}
         {form.tipo_paciente === "Profesor" && (
           <>
             <input
               name="codigo_empleado"
               value={form.codigo_empleado}
               onChange={handleChange}
-              placeholder="Código de empleado"
+              placeholder="Codigo de empleado"
               className="w-full mb-4 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
             />
             <input
@@ -160,7 +161,7 @@ export default function NuevoExpediente() {
               onChange={handleChange}
               className="w-full mb-4 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
             >
-              <option value="">Categoría</option>
+              <option value="">Categoria</option>
               <option value="Auxiliar">Auxiliar</option>
               <option value="Asociado">Asociado</option>
               <option value="Titular">Titular</option>
@@ -168,14 +169,13 @@ export default function NuevoExpediente() {
           </>
         )}
 
-        {/* Personal Administrativo */}
         {form.tipo_paciente === "Personal Administrativo" && (
           <>
             <input
               name="codigo_empleado"
               value={form.codigo_empleado}
               onChange={handleChange}
-              placeholder="Código de empleado"
+              placeholder="Codigo de empleado"
               className="w-full mb-4 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
             />
             <input
@@ -188,7 +188,6 @@ export default function NuevoExpediente() {
           </>
         )}
 
-        {/* Botones */}
         <div className="flex justify-between mt-8">
           <button
             onClick={() => nav("/expedientes")}

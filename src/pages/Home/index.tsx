@@ -1,6 +1,6 @@
 import { useState } from "react";
-import DashboardButtons from '../../components/DashboardButtons'; // Agrega esta línea
 import { useNavigate } from "react-router-dom";
+import DashboardButtons from "../../components/DashboardButtons";
 import {
   ClipboardDocumentCheckIcon,
   CalendarDaysIcon,
@@ -11,6 +11,7 @@ import {
   Bars3Icon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
+import { useAuth } from "../../contexts/auth-context";
 
 const menu = [
   { name: "Nueva Consulta", route: "/nueva-consulta", icon: ClipboardDocumentCheckIcon },
@@ -24,21 +25,24 @@ const menu = [
 export default function Home() {
   const nav = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { logout, user } = useAuth();
 
   return (
-    <div className="flex h-screen bg-gray-50 relative"> {/* Agrega 'relative' aquí */}
-      {/* Sidebar */}
+    <div className="flex h-screen bg-gray-50 relative">
       <aside
         className={`${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         } fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0`}
       >
         <div className="flex items-center justify-between p-4 border-b">
-          <h1 className="text-xl font-bold text-indigo-600">ISUM</h1>
+          <div>
+            <h1 className="text-xl font-bold text-indigo-600">ISUM</h1>
+            <p className="text-xs text-gray-500 mt-1">{user?.email ?? "Sesion activa"}</p>
+          </div>
           <button
             className="md:hidden"
             onClick={() => setSidebarOpen(false)}
-            aria-label="Cerrar menú"
+            aria-label="Cerrar menu"
           >
             <XMarkIcon className="w-6 h-6 text-gray-600" />
           </button>
@@ -48,6 +52,9 @@ export default function Home() {
             <button
               key={item.name}
               onClick={() => {
+                if (item.name === "Salir") {
+                  logout();
+                }
                 nav(item.route);
                 setSidebarOpen(false);
               }}
@@ -60,7 +67,6 @@ export default function Home() {
         </nav>
       </aside>
 
-      {/* Overlay móvil */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/30 z-40 md:hidden"
@@ -68,18 +74,17 @@ export default function Home() {
         />
       )}
 
-      {/* Main content */}
       <main className="flex-1 overflow-y-auto">
         <header className="bg-white shadow-sm px-6 py-4 flex items-center justify-between">
           <button
             className="md:hidden"
             onClick={() => setSidebarOpen(true)}
-            aria-label="Abrir menú"
+            aria-label="Abrir menu"
           >
             <Bars3Icon className="w-6 h-6 text-gray-600" />
           </button>
           <h2 className="text-2xl font-semibold text-gray-800">Dashboard</h2>
-          <span className="text-sm text-gray-500">Enfermería</span>
+          <span className="text-sm text-gray-500">{user?.role ?? "Enfermeria"}</span>
         </header>
 
         <section className="p-6">
@@ -87,13 +92,18 @@ export default function Home() {
             {menu.map((card) => (
               <button
                 key={card.name}
-                onClick={() => nav(card.route)}
+                onClick={() => {
+                  if (card.name === "Salir") {
+                    logout();
+                  }
+                  nav(card.route);
+                }}
                 className="bg-white rounded-xl shadow p-6 text-left hover:shadow-lg hover:scale-105 transition"
               >
                 <card.icon className="w-10 h-10 text-indigo-600 mb-4" />
                 <h3 className="text-lg font-semibold text-gray-800">{card.name}</h3>
                 <p className="text-sm text-gray-500 mt-1">
-                  Accede al módulo de {card.name.toLowerCase()}
+                  Accede al modulo de {card.name.toLowerCase()}
                 </p>
               </button>
             ))}
@@ -101,7 +111,6 @@ export default function Home() {
         </section>
       </main>
 
-      {/* Agrega DashboardButtons aquí, fuera del sidebar y main content */}
       <DashboardButtons />
     </div>
   );

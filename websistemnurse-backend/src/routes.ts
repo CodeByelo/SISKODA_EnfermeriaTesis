@@ -170,12 +170,13 @@ router.post('/', async (req, res) => {
     client.release();
 
     res.status(201).json({ message: 'Consulta creada exitosamente', id: consultaId });
-  } catch (err: any) {
+  } catch (err: unknown) {
     await client.query('ROLLBACK');
     client.release();
     console.error('Error en backend:', err);
-    if (err.message?.includes('Medicamento no encontrado') || err.message?.includes('No hay stock')) {
-      return res.status(400).json({ error: err.message });
+    const error = err instanceof Error ? err : new Error('Error desconocido');
+    if (error.message.includes('Medicamento no encontrado') || error.message.includes('No hay stock')) {
+      return res.status(400).json({ error: error.message });
     }
     res.status(500).json({ error: 'Error al crear la consulta' });
   }

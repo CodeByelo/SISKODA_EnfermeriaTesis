@@ -8,6 +8,7 @@ import inventarioRouter from './inventario';
 import reportesRouter from './reportes';
 import 'dotenv/config';
 import authRouter from './authRouter';
+import { requireAuth } from './auth';
 
 const app = express();
 const PORT = process.env.PORT || 4001;
@@ -53,13 +54,12 @@ app.use((req, res, next) => {
   next();
 });
 
-// Monta los routers
-app.use('/api/consultas', consultasRouter);        
-app.use("/api/consultas-hoy", consultasHoyRouter);
-app.use("/api/expedientes", expedientesRouter);
-app.use("/api/inventario", inventarioRouter);
-app.use('/api/reportes', reportesRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/consultas', requireAuth, consultasRouter);
+app.use("/api/consultas-hoy", requireAuth, consultasHoyRouter);
+app.use("/api/expedientes", requireAuth, expedientesRouter);
+app.use("/api/inventario", requireAuth, inventarioRouter);
+app.use('/api/reportes', requireAuth, reportesRouter);
 
 app.listen(PORT, () => {
   console.log(`Backend activo en puerto ${PORT}`);

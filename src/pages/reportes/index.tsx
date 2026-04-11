@@ -1,4 +1,3 @@
-// src/pages/reportes/index.tsx
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -14,7 +13,23 @@ import {
   LineElement,
 } from 'chart.js';
 import { Bar, Pie, Line } from 'react-chartjs-2';
-import { buildApiUrl } from '../../config/api';
+import { API_URL } from '../../config/api';
+import { authFetch, buildAuthHeaders } from '../../lib/auth';
+
+type PrioridadItem = {
+  prioridad: string;
+  cantidad: number;
+};
+
+type TendenciaItem = {
+  fecha: string;
+  total: number;
+};
+
+type StockItem = {
+  nombre: string;
+  stock_actual: number;
+};
 
 ChartJS.register(
   CategoryScale,
@@ -30,47 +45,45 @@ ChartJS.register(
 
 export default function Reportes() {
   const nav = useNavigate();
-  const [prioridadData, setPrioridadData] = useState<any[]>([]);
-  const [tendenciaData, setTendenciaData] = useState<any[]>([]);
-  const [stockData, setStockData] = useState<any[]>([]);
-
-  const fetchData = async () => {
-    try {
-      const [prioridad, tendencia, stock] = await Promise.all([
-        fetch(buildApiUrl('/api/reportes/consultas-por-prioridad')).then(r => r.json()),
-        fetch(buildApiUrl('/api/reportes/consultas-por-dia')).then(r => r.json()),
-        fetch(buildApiUrl('/api/reportes/stock-por-insumo')).then(r => r.json()),
-      ]);
-      setPrioridadData(prioridad);
-      setTendenciaData(tendencia);
-      setStockData(stock);
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  const [prioridadData, setPrioridadData] = useState<PrioridadItem[]>([]);
+  const [tendenciaData, setTendenciaData] = useState<TendenciaItem[]>([]);
+  const [stockData, setStockData] = useState<StockItem[]>([]);
 
   useEffect(() => {
-    fetchData();
+    const fetchData = async () => {
+      try {
+        const [prioridad, tendencia, stock] = await Promise.all([
+          authFetch('/api/reportes/consultas-por-prioridad').then(r => r.json() as Promise<PrioridadItem[]>),
+          authFetch('/api/reportes/consultas-por-dia').then(r => r.json() as Promise<TendenciaItem[]>),
+          authFetch('/api/reportes/stock-por-insumo').then(r => r.json() as Promise<StockItem[]>),
+        ]);
+        setPrioridadData(prioridad);
+        setTendenciaData(tendencia);
+        setStockData(stock);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    void fetchData();
   }, []);
 
-  // Gráfico de barras: consultas por prioridad
   const barData = {
-    labels: prioridadData.map((d: any) => d.prioridad),
+    labels: prioridadData.map((d) => d.prioridad),
     datasets: [
       {
         label: 'Consultas',
-        data: prioridadData.map((d: any) => d.cantidad),
+        data: prioridadData.map((d) => d.cantidad),
         backgroundColor: ['rgba(239, 68, 68, 0.6)', 'rgba(59, 130, 246, 0.6)'],
       },
     ],
   };
 
-  // Gráfico de pastel: stock actual
   const pieData = {
-    labels: stockData.map((d: any) => d.nombre),
+    labels: stockData.map((d) => d.nombre),
     datasets: [
       {
-        data: stockData.map((d: any) => d.stock_actual),
+        data: stockData.map((d) => d.stock_actual),
         backgroundColor: [
           '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6',
           '#EC4899', '#06B6D4', '#F97316', '#6B7280', '#84CC16'
@@ -79,13 +92,12 @@ export default function Reportes() {
     ],
   };
 
-  // Gráfico de líneas: tendencia diaria
   const lineData = {
-    labels: tendenciaData.map((d: any) => d.fecha),
+    labels: tendenciaData.map((d) => d.fecha),
     datasets: [
       {
-        label: 'Consultas por día',
-        data: tendenciaData.map((d: any) => d.total),
+        label: 'Consultas por dia',
+        data: tendenciaData.map((d) => d.total),
         borderColor: '#3B82F6',
         backgroundColor: 'rgba(59, 130, 246, 0.1)',
         tension: 0.3,
@@ -94,9 +106,28 @@ export default function Reportes() {
     ],
   };
 
-  // ✅ Llama al backend para descargar el Excel REAL
-  const exportToExcel = () => {
-    window.open(buildApiUrl('/api/reportes/excel'), "_blank");
+  const exportToExcel = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/reportes/excel`, {
+        headers: buildAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        alert('No se pudo exportar el reporte');
+        return;
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'Reporte_Enfermeria.xlsx';
+      link.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      alert('No se pudo exportar el reporte');
+    }
   };
 
   return (
@@ -109,7 +140,7 @@ export default function Reportes() {
               onClick={exportToExcel}
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
             >
-              📊 Exportar a Excel
+              Exportar a Excel
             </button>
             <button
               onClick={() => nav('/dashboard')}
@@ -121,7 +152,6 @@ export default function Reportes() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* Gráfico de barras */}
           <div className="bg-white p-4 rounded-lg shadow">
             <h2 className="text-lg font-semibold mb-4">Consultas por Prioridad</h2>
             {prioridadData.length > 0 ? (
@@ -131,20 +161,18 @@ export default function Reportes() {
             )}
           </div>
 
-          {/* Gráfico de pastel: STOCK ACTUAL */}
           <div className="bg-white p-4 rounded-lg shadow">
             <h2 className="text-lg font-semibold mb-4">Stock Actual por Insumo</h2>
             {stockData.length > 0 ? (
-              <Pie data={pieData} options={{ responsive: true, plugins: { legend: { position: 'right' } } }} />
+              <Pie data={pieData} options={{ responsive: true, plugins: { legend: { position: 'right' as const } } }} />
             ) : (
               <p className="text-gray-500">Sin stock registrado</p>
             )}
           </div>
         </div>
 
-        {/* Gráfico de tendencia */}
         <div className="bg-white p-4 rounded-lg shadow mb-6">
-          <h2 className="text-lg font-semibold mb-4">Tendencia de Consultas (Últimos 14 días)</h2>
+          <h2 className="text-lg font-semibold mb-4">Tendencia de Consultas (Ultimos 14 dias)</h2>
           {tendenciaData.length > 0 ? (
             <Line data={lineData} options={{ responsive: true, scales: { y: { beginAtZero: true } } }} />
           ) : (

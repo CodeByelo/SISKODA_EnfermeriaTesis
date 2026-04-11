@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Expediente } from "./types";
-import { buildApiUrl } from "../../config/api";
+import { authFetch } from "../../lib/auth";
 
 export default function Expedientes() {
   const nav = useNavigate();
@@ -13,7 +13,7 @@ export default function Expedientes() {
   const fetchExp = async () => {
     setLoading(true);
     try {
-      const res = await fetch(buildApiUrl('/api/expedientes'));
+      const res = await authFetch('/api/expedientes');
       const data = await res.json();
       setList(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -30,7 +30,7 @@ export default function Expedientes() {
     }
 
     try {
-      const res = await fetch(buildApiUrl(`/api/expedientes/${id}`), {
+      const res = await authFetch(`/api/expedientes/${id}`, {
         method: "DELETE",
       });
 
