@@ -54,6 +54,9 @@ ChartJS.register(
 export default function Reportes() {
   const nav = useNavigate();
   const { notify } = useNotifications();
+  const [fechaDesde, setFechaDesde] = useState("");
+  const [fechaHasta, setFechaHasta] = useState("");
+  const [exporting, setExporting] = useState(false);
   const [prioridadData, setPrioridadData] = useState<PrioridadItem[]>([]);
   const [tendenciaData, setTendenciaData] = useState<TendenciaItem[]>([]);
   const [stockData, setStockData] = useState<StockItem[]>([]);
@@ -148,8 +151,25 @@ export default function Reportes() {
   );
 
   const exportToExcel = async () => {
+    if (fechaDesde && fechaHasta && fechaDesde > fechaHasta) {
+      notify({ tone: "error", title: "El rango de fechas no es valido" });
+      return;
+    }
+
     try {
-      const response = await fetch(`${API_URL}/api/reportes/excel`, {
+      setExporting(true);
+      const params = new URLSearchParams();
+
+      if (fechaDesde) {
+        params.set("desde", fechaDesde);
+      }
+
+      if (fechaHasta) {
+        params.set("hasta", fechaHasta);
+      }
+
+      const query = params.toString();
+      const response = await fetch(`${API_URL}/api/reportes/excel${query ? `?${query}` : ""}`, {
         headers: buildAuthHeaders(),
       });
 
@@ -162,12 +182,17 @@ export default function Reportes() {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = "Reporte_Enfermeria.xlsx";
+      const disposition = response.headers.get("Content-Disposition");
+      const fileName = disposition?.match(/filename="([^"]+)"/i)?.[1] ?? "Reporte_Enfermeria.xlsx";
+      link.download = fileName;
       link.click();
       window.URL.revokeObjectURL(url);
+      notify({ tone: "success", title: "Reporte exportado correctamente" });
     } catch (err) {
       console.error(err);
       notify({ tone: "error", title: "No se pudo exportar el reporte" });
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -239,12 +264,35 @@ export default function Reportes() {
               </div>
 
               <div className="flex flex-wrap gap-3">
+                <label className="flex flex-col gap-2 rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-3 text-sm text-gray-700">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                    Desde
+                  </span>
+                  <input
+                    type="date"
+                    value={fechaDesde}
+                    onChange={(event) => setFechaDesde(event.target.value)}
+                    className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm text-gray-800 outline-none"
+                  />
+                </label>
+                <label className="flex flex-col gap-2 rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-3 text-sm text-gray-700">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                    Hasta
+                  </span>
+                  <input
+                    type="date"
+                    value={fechaHasta}
+                    onChange={(event) => setFechaHasta(event.target.value)}
+                    className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm text-gray-800 outline-none"
+                  />
+                </label>
                 <button
                   onClick={() => void exportToExcel()}
-                  className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-3 text-sm font-semibold text-white"
+                  disabled={exporting}
+                  className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   <ArrowDownTrayIcon className="h-5 w-5" />
-                  Exportar a Excel
+                  {exporting ? "Exportando..." : "Exportar a Excel"}
                 </button>
                 <button
                   onClick={() => nav("/dashboard")}
