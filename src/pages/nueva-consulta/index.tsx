@@ -200,10 +200,6 @@ export default function NuevaConsulta() {
                 Nueva consulta
               </p>
               <h1 className="mt-3 text-4xl font-semibold tracking-tight">Registro clínico</h1>
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-violet-100">
-                Un formulario sobrio y coherente con el resto del sistema, organizado por etapas para
-                capturar la consulta con mas claridad.
-              </p>
             </div>
 
             <div className="grid gap-3 self-center sm:grid-cols-3">
