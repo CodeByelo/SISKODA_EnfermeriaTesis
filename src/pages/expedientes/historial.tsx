@@ -1,9 +1,11 @@
-// src/pages/expedientes/historial.tsx
-import { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import api from '../../services/api';
-import { authFetch } from '../../lib/auth';
-import type { Expediente } from './types';
+import { useCallback, useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import {
+} from "@heroicons/react/24/outline";
+import api from "../../services/api";
+import { authFetch } from "../../lib/auth";
+import { useNotifications } from "../../contexts/notification-context";
+import type { Expediente } from "./types";
 
 type Consulta = {
   id: number;
@@ -31,9 +33,24 @@ type ConsultaPayload = {
   prioridad: string;
 };
 
+const formatTime = (value: string) =>
+  new Date(value).toLocaleString("es-VE", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+
+const formatPrintDate = (value: string) =>
+  new Date(value).toLocaleString("es-VE", {
+    dateStyle: "short",
+    timeStyle: "short",
+    hour12: true,
+  });
+
 export default function HistorialPaciente() {
   const nav = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const { notify } = useNotifications();
   const [paciente, setPaciente] = useState<Expediente | null>(null);
   const [consultas, setConsultas] = useState<Consulta[]>([]);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
@@ -45,7 +62,7 @@ export default function HistorialPaciente() {
     try {
       const res = await authFetch(`/api/expedientes/${id}`);
       if (res.ok) {
-        const data = await res.json() as Expediente;
+        const data = (await res.json()) as Expediente;
         setPaciente(data);
       }
     } catch (err) {
@@ -57,7 +74,7 @@ export default function HistorialPaciente() {
     try {
       const res = await authFetch(`/api/consultas?paciente_id=${id}`);
       if (res.ok) {
-        const data = await res.json() as Consulta[];
+        const data = (await res.json()) as Consulta[];
         setConsultas(data);
       }
     } catch (err) {
@@ -65,106 +82,106 @@ export default function HistorialPaciente() {
     }
   }, [id]);
 
-  // 🔥 Cargar inventario al montar el componente
   useEffect(() => {
     const cargarInventario = async () => {
       try {
-        const respuesta = await api.get('/api/inventario/medicamentos');
+        const respuesta = await api.get("/api/inventario/medicamentos");
         setInventario(respuesta.data as InventarioMedicamento[]);
       } catch (error) {
-        console.error('Error al cargar el inventario:', error);
-        setErrorInventario('No se pudo cargar la lista de medicamentos');
+        console.error("Error al cargar el inventario:", error);
+        setErrorInventario("No se pudo cargar la lista de medicamentos");
       }
     };
 
-    cargarInventario();
+    void cargarInventario();
   }, []);
 
   useEffect(() => {
     if (id) {
-      fetchPaciente();
-      fetchConsultas();
+      void fetchPaciente();
+      void fetchConsultas();
     }
   }, [id, fetchConsultas, fetchPaciente]);
 
+  const carnetVisible = paciente?.carnet_uni || paciente?.codigo_empleado || "—";
+  const totalConsultas = consultas.length;
+
   const enviarNuevaConsulta = async (datos: ConsultaPayload) => {
     try {
-      const response = await authFetch(`/api/consultas`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await authFetch("/api/consultas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           paciente_id: Number(id),
           motivo: datos.motivo,
           sintomas: datos.sintomas,
           diagnostico: datos.diagnostico,
-          medicamentos: Array.isArray(datos.medicamentos)
-            ? datos.medicamentos.join('\n')
-            : datos.medicamentos,
+          medicamentos: Array.isArray(datos.medicamentos) ? datos.medicamentos.join("\n") : datos.medicamentos,
           notas_recom: datos.notas_recom,
           prioridad: datos.prioridad,
         }),
       });
 
       if (response.ok) {
-        alert('✅ Nueva consulta agregada');
+        notify({ tone: "success", title: "Consulta agregada" });
         setMostrarFormulario(false);
         await fetchConsultas();
       } else {
         const errorText = await response.text();
-        console.error('Error del servidor:', errorText);
-        alert('❌ Error al guardar la consulta');
+        console.error("Error del servidor:", errorText);
+        notify({ tone: "error", title: "No se pudo guardar", message: "Revisa los datos e intenta nuevamente." });
       }
     } catch (err) {
-      console.error('Error al enviar:', err);
-      alert('❌ Error de conexión');
+      console.error("Error al enviar:", err);
+      notify({ tone: "error", title: "Error de conexión" });
     }
   };
 
   const guardarEdicionConsulta = async (consultaId: number, datos: ConsultaPayload) => {
     try {
       const response = await authFetch(`/api/consultas/${consultaId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           motivo: datos.motivo,
           sintomas: datos.sintomas,
           diagnostico: datos.diagnostico,
-          medicamentos: typeof datos.medicamentos === 'string' ? datos.medicamentos : (datos.medicamentos || []).join('\n'),
+          medicamentos: typeof datos.medicamentos === "string" ? datos.medicamentos : (datos.medicamentos || []).join("\n"),
           notas_recom: datos.notas_recom,
           prioridad: datos.prioridad,
         }),
       });
+
       if (response.ok) {
         setEditandoConsulta(null);
         await fetchConsultas();
-        alert('✅ Consulta actualizada');
+        notify({ tone: "success", title: "Consulta actualizada" });
       } else {
         const err = await response.json().catch(() => ({}));
-        alert('❌ ' + (err.error || 'Error al actualizar'));
+        notify({ tone: "error", title: "No se pudo actualizar", message: err.error || "Error desconocido" });
       }
     } catch (err) {
       console.error(err);
-      alert('❌ Error de conexión');
+      notify({ tone: "error", title: "Error de conexión" });
     }
   };
 
   const eliminarConsulta = async (consultaId: number) => {
-    if (!confirm('¿Estás seguro de eliminar esta consulta?')) return;
-
+    if (!confirm("¿Estás seguro de eliminar esta consulta?")) return;
     try {
       const res = await authFetch(`/api/consultas/${consultaId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       if (res.ok) {
-        alert('✅ Consulta eliminada');
+        notify({ tone: "success", title: "Consulta eliminada" });
         await fetchConsultas();
       } else {
-        alert('❌ Error al eliminar');
+        notify({ tone: "error", title: "No se pudo eliminar" });
       }
     } catch (err) {
       console.error(err);
-      alert('❌ Error de conexión');
+      notify({ tone: "error", title: "Error de conexión" });
     }
   };
 
@@ -173,206 +190,307 @@ export default function HistorialPaciente() {
       .map(
         (c) => `
       <tr>
-        <td>${new Date(c.creado_en).toLocaleString()}</td>
-        <td>${(c.motivo || '').replace(/</g, '&lt;')}</td>
-        <td>${(c.sintomas || '—').replace(/</g, '&lt;')}</td>
-        <td>${(c.diagnostico || '—').replace(/</g, '&lt;')}</td>
-        <td>${(c.medicamentos || '—').replace(/\n/g, ', ').replace(/</g, '&lt;')}</td>
-        <td>${(c.notas_recom || '—').replace(/</g, '&lt;')}</td>
-        <td>${(c.prioridad || '').replace(/</g, '&lt;')}</td>
+        <td>${formatPrintDate(c.creado_en)}</td>
+        <td>${(c.motivo || "—").replace(/</g, "&lt;")}</td>
+        <td>${(c.sintomas || "—").replace(/</g, "&lt;")}</td>
+        <td>${(c.diagnostico || "—").replace(/</g, "&lt;")}</td>
+        <td>${(c.medicamentos || "—").replace(/\n/g, ", ").replace(/</g, "&lt;")}</td>
+        <td>${(c.notas_recom || "—").replace(/</g, "&lt;")}</td>
+        <td>${(c.prioridad || "").replace(/</g, "&lt;")}</td>
       </tr>`
       )
-      .join('');
-    const html = `
-<!DOCTYPE html>
+      .join("");
+
+    const html = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Informe - ${(paciente?.nombre || '')} ${(paciente?.apellido || '')}</title>
+  <title>Informe - ${(paciente?.nombre || "")} ${(paciente?.apellido || "")}</title>
   <style>
-    body { font-family: system-ui, sans-serif; padding: 24px; color: #1f2937; }
-    h1 { font-size: 1.5rem; margin-bottom: 8px; }
-    .datos { margin-bottom: 24px; }
-    .datos p { margin: 4px 0; }
-    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-    th, td { border: 1px solid #e5e7eb; padding: 8px 12px; text-align: left; }
-    th { background: #f3f4f6; font-weight: 600; }
-    @media print { body { padding: 16px; } }
+    :root { color-scheme: light; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #111827;
+      background: linear-gradient(180deg, #f8f7ff 0%, #ffffff 100%);
+    }
+    .sheet {
+      padding: 28px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 20px;
+      border-radius: 18px;
+      color: white;
+      background: linear-gradient(90deg, #23102f 0%, #34164c 55%, #4c1d72 100%);
+    }
+    .header h1 { margin: 0; font-size: 22px; }
+    .header p { margin: 4px 0 0; font-size: 12px; opacity: 0.9; }
+    .pill {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.15);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .section {
+      margin-top: 18px;
+      padding: 18px;
+      background: #fff;
+      border: 1px solid #e9ddff;
+      border-radius: 18px;
+      box-shadow: 0 16px 40px -32px rgba(76,29,149,0.35);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px 22px;
+      margin-top: 12px;
+    }
+    .field { font-size: 13px; line-height: 1.45; }
+    .field strong { color: #111827; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 12px;
+    }
+    th, td {
+      border: 1px solid #e5e7eb;
+      padding: 8px 10px;
+      vertical-align: top;
+      text-align: left;
+    }
+    th {
+      background: #f5f3ff;
+      color: #4c1d72;
+      font-weight: 700;
+    }
+    tbody tr:nth-child(even) td { background: #fafafa; }
+    .meta {
+      margin-top: 10px;
+      font-size: 11px;
+      color: #6b7280;
+    }
+    @media print {
+      .sheet { padding: 0; }
+      .section { box-shadow: none; }
+      body { background: white; }
+    }
   </style>
 </head>
 <body>
-  <h1>Informe de historial clínico</h1>
-  <div class="datos">
-    <p><strong>Paciente:</strong> ${(paciente?.nombre || '').replace(/</g, '&lt;')} ${(paciente?.apellido || '').replace(/</g, '&lt;')}</p>
-    <p><strong>Tipo:</strong> ${(paciente?.tipo_paciente || '—').replace(/</g, '&lt;')}</p>
-    <p><strong>Carnet:</strong> ${(paciente?.carnet_uni || '—').replace(/</g, '&lt;')}</p>
-    <p><strong>Código empleado:</strong> ${(paciente?.codigo_empleado || '—').replace(/</g, '&lt;')}</p>
-    <p><strong>Email:</strong> ${(paciente?.email || '—').replace(/</g, '&lt;')}</p>
-    <p><strong>Teléfono:</strong> ${(paciente?.telefono || '—').replace(/</g, '&lt;')}</p>
-    <p><strong>Carrera/Departamento:</strong> ${(paciente?.carrera_depto || '—').replace(/</g, '&lt;')}</p>
+  <div class="sheet">
+    <div class="header">
+      <div>
+        <span class="pill">Informe clínico</span>
+        <h1>Historial de consultas</h1>
+        <p>${(paciente?.nombre || "").replace(/</g, "&lt;")} ${(paciente?.apellido || "").replace(/</g, "&lt;")}</p>
+      </div>
+      <div style="text-align:right">
+        <div class="pill">${consultas.length} consultas</div>
+        <p>${new Date().toLocaleString("es-VE", { dateStyle: "short", timeStyle: "short", hour12: true })}</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2 style="margin:0;font-size:16px;">Datos del paciente</h2>
+      <div class="grid">
+        <div class="field"><strong>Tipo:</strong> ${(paciente?.tipo_paciente || "—").replace(/</g, "&lt;")}</div>
+        <div class="field"><strong>Carnet:</strong> ${(carnetVisible || "—").replace(/</g, "&lt;")}</div>
+        <div class="field"><strong>Código empleado:</strong> ${(paciente?.codigo_empleado || "—").replace(/</g, "&lt;")}</div>
+        <div class="field"><strong>Email:</strong> ${(paciente?.email || "—").replace(/</g, "&lt;")}</div>
+        <div class="field"><strong>Teléfono:</strong> ${(paciente?.telefono || "—").replace(/</g, "&lt;")}</div>
+        <div class="field"><strong>Carrera/Departamento:</strong> ${(paciente?.carrera_depto || "—").replace(/</g, "&lt;")}</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2 style="margin:0;font-size:16px;">Historial de consultas</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Motivo</th>
+            <th>Síntomas</th>
+            <th>Diagnóstico</th>
+            <th>Medicamentos</th>
+            <th>Notas</th>
+            <th>Prioridad</th>
+          </tr>
+        </thead>
+        <tbody>${filas || '<tr><td colspan="7">Sin consultas registradas.</td></tr>'}</tbody>
+      </table>
+      <div class="meta">Generado el ${new Date().toLocaleString("es-VE", { dateStyle: "short", timeStyle: "short", hour12: true })}.</div>
+    </div>
   </div>
-  <h2>Historial de consultas</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Fecha</th>
-        <th>Motivo</th>
-        <th>Síntomas</th>
-        <th>Diagnóstico</th>
-        <th>Medicamentos</th>
-        <th>Notas</th>
-        <th>Prioridad</th>
-      </tr>
-    </thead>
-    <tbody>${filas || '<tr><td colspan="7">Sin consultas registradas.</td></tr>'}</tbody>
-  </table>
-  <p style="margin-top: 24px; font-size: 0.875rem; color: #6b7280;">Generado el ${new Date().toLocaleString()}.</p>
 </body>
 </html>`;
-    const ventana = window.open('', '_blank');
+
+    const ventana = window.open("", "_blank");
     if (ventana) {
       ventana.document.write(html);
       ventana.document.close();
       ventana.focus();
       ventana.onload = () => ventana.print();
     } else {
-      alert('Permite ventanas emergentes para poder imprimir el informe.');
+      notify({ tone: "error", title: "Permite ventanas emergentes para imprimir." });
     }
   };
 
-  if (!paciente) return <div>Cargando...</div>;
+  if (!paciente) {
+    return (
+      <div className="min-h-screen bg-[linear-gradient(180deg,#f7f7fb_0%,#f2f4f8_100%)] px-4 py-6 md:px-6">
+        <div className="mx-auto max-w-6xl rounded-[28px] bg-white p-8 shadow-sm">Cargando...</div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-6xl mx-auto bg-white rounded-xl shadow p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">
-            Historial de {paciente.nombre} {paciente.apellido}
-          </h1>
-          <div className="flex gap-3">
-            <button
-              onClick={() => setMostrarFormulario(!mostrarFormulario)}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-            >
-              {mostrarFormulario ? 'Cancelar' : '+ Agregar nueva historia'}
-            </button>
-            <button
-              onClick={imprimirInforme}
-              className="px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700"
-            >
-              Generar e imprimir informe
-            </button>
-            <button
-              onClick={() => nav('/expedientes')}
-              className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
-            >
-              Volver a Expedientes
-            </button>
-          </div>
-        </div>
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(109,40,217,0.08),_transparent_35%),linear-gradient(180deg,#f7f7fb_0%,#f2f4f8_100%)] px-4 py-6 md:px-6 xl:px-8">
+      <div className="mx-auto max-w-6xl space-y-6">
+        <section className="rounded-[28px] border border-violet-100 bg-white shadow-[0_24px_60px_-40px_rgba(76,29,149,0.35)]">
+          <div className="flex flex-col gap-4 bg-gradient-to-r from-[#23102f] via-[#34164c] to-[#4c1d72] px-6 py-6 text-white lg:flex-row lg:items-center lg:justify-between xl:px-8">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.34em] text-violet-200">Historial clínico</p>
+              <h1 className="mt-3 text-3xl font-semibold md:text-4xl">
+                {paciente.nombre} {paciente.apellido}
+              </h1>
+              <p className="mt-3 text-sm leading-6 text-violet-100">
+                Consulta y seguimiento con la misma estética operativa del sistema.
+              </p>
+            </div>
 
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold mb-2">Datos del Paciente</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <p><strong>Tipo:</strong> {paciente.tipo_paciente}</p>
-            <p><strong>Carnet:</strong> {paciente.carnet_uni || '—'}</p>
-            <p><strong>Código Empleado:</strong> {paciente.codigo_empleado || '—'}</p>
-            <p><strong>Email:</strong> {paciente.email || '—'}</p>
-            <p><strong>Teléfono:</strong> {paciente.telefono || '—'}</p>
-            <p><strong>Carrera/Departamento:</strong> {paciente.carrera_depto || '—'}</p>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <button
+                onClick={() => setMostrarFormulario((value) => !value)}
+                className="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700"
+              >
+                {mostrarFormulario ? "Cancelar" : "+ Agregar nueva historia"}
+              </button>
+              <button
+                onClick={imprimirInforme}
+                className="inline-flex items-center justify-center rounded-2xl bg-sky-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-700"
+              >
+                Generar e imprimir informe
+              </button>
+              <button
+                onClick={() => nav("/expedientes")}
+                className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/15"
+              >
+                Volver a Expedientes
+              </button>
+            </div>
           </div>
-        </div>
+
+          <div className="grid gap-4 px-6 py-5 md:grid-cols-3 xl:px-8">
+            <div className="rounded-2xl border border-violet-100 bg-violet-50/60 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-violet-500">Tipo</p>
+              <p className="mt-2 text-lg font-semibold text-gray-900">{paciente.tipo_paciente}</p>
+            </div>
+            <div className="rounded-2xl border border-violet-100 bg-violet-50/60 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-violet-500">Carnet</p>
+              <p className="mt-2 text-lg font-semibold text-gray-900">{carnetVisible}</p>
+            </div>
+            <div className="rounded-2xl border border-violet-100 bg-violet-50/60 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-violet-500">Consultas</p>
+              <p className="mt-2 text-lg font-semibold text-gray-900">{totalConsultas}</p>
+            </div>
+          </div>
+        </section>
 
         {mostrarFormulario && (
-          <div className="bg-white p-4 rounded-lg shadow mb-6">
-            <h3 className="text-lg font-semibold mb-4">Agregar nueva historia</h3>
+          <div className="rounded-[28px] border border-violet-100 bg-white p-6 shadow-[0_24px_60px_-40px_rgba(76,29,149,0.25)]">
+            <h3 className="text-xl font-semibold text-gray-900">Agregar nueva historia</h3>
             <form
+              className="mt-6 grid gap-5 md:grid-cols-2"
               onSubmit={async (e) => {
                 e.preventDefault();
                 const formData = new FormData(e.currentTarget);
                 const datos = {
-                  motivo: formData.get('motivo') as string,
-                  sintomas: formData.get('sintomas') as string,
-                  diagnostico: formData.get('diagnostico') as string,
-                  medicamentos: (formData.get('medicamentos') as string).split('\n').filter(Boolean),
-                  notas_recom: formData.get('notas_recom') as string,
-                  prioridad: formData.get('prioridad') as string,
+                  motivo: formData.get("motivo") as string,
+                  sintomas: formData.get("sintomas") as string,
+                  diagnostico: formData.get("diagnostico") as string,
+                  medicamentos: (formData.get("medicamentos") as string).split("\n").filter(Boolean),
+                  notas_recom: formData.get("notas_recom") as string,
+                  prioridad: formData.get("prioridad") as string,
                 };
                 await enviarNuevaConsulta(datos);
               }}
             >
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block mb-2">Motivo</label>
-                  <input name="motivo" required className="w-full px-4 py-2 border rounded-lg" />
-                </div>
-                <div>
-                  <label className="block mb-2">Síntomas</label>
-                  <textarea name="sintomas" className="w-full px-4 py-2 border rounded-lg h-24"></textarea>
-                </div>
-                <div>
-                  <label className="block mb-2">Diagnóstico</label>
-                  <textarea name="diagnostico" className="w-full px-4 py-2 border rounded-lg h-24"></textarea>
-                </div>
-                <div>
-                  <label className="block mb-2">Medicamentos (selecciona del inventario)</label>
-                  <select
-                    className="w-full px-4 py-2 border rounded-lg"
-                    onChange={(e) => {
-                      const valor = e.target.value;
-                      if (valor) {
-                        const [nombre] = valor.split('|');
-                        const textarea = document.querySelector('textarea[name="medicamentos"]') as HTMLTextAreaElement;
-                        if (textarea) {
-                          const valorActual = textarea.value.trim();
-                          const nuevoValor = valorActual
-                            ? valorActual + '\n' + nombre
-                            : nombre;
-                          textarea.value = nuevoValor;
-                        }
-                        e.target.value = '';
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold text-gray-700">Motivo</span>
+                <input name="motivo" required className="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100" />
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold text-gray-700">Síntomas</span>
+                <textarea name="sintomas" className="h-28 w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100" />
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold text-gray-700">Diagnóstico</span>
+                <textarea name="diagnostico" className="h-28 w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100" />
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold text-gray-700">Medicamentos</span>
+                <select
+                  className="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                  onChange={(e) => {
+                    const valor = e.target.value;
+                    if (valor) {
+                      const [nombre] = valor.split("|");
+                      const textarea = document.querySelector('textarea[name="medicamentos"]') as HTMLTextAreaElement | null;
+                      if (textarea) {
+                        const valorActual = textarea.value.trim();
+                        textarea.value = valorActual ? `${valorActual}\n${nombre}` : nombre;
                       }
-                    }}
-                  >
-                    <option value="">— Seleccionar medicamento —</option>
-                    {inventario
-                      .filter((item) => item.cantidad_disponible > 0)
-                      .map((item) => (
-                        <option key={item.id} value={`${item.nombre}|${item.id}`}>
-                          {item.nombre} ({item.cantidad_disponible} disponibles)
-                        </option>
-                      ))}
-                  </select>
-                  <textarea
-                    name="medicamentos"
-                    className="w-full px-4 py-2 border rounded-lg mt-2 h-24"
-                    placeholder="Los medicamentos seleccionados aparecerán aquí (una por línea)"
-                  ></textarea>
-                  {errorInventario && (
-                    <p className="text-red-500 text-sm mt-1">{errorInventario}</p>
-                  )}
-                </div>
-                <div>
-                  <label className="block mb-2">Notas y recomendaciones</label>
-                  <textarea name="notas_recom" className="w-full px-4 py-2 border rounded-lg h-24"></textarea>
-                </div>
-                <div>
-                  <label className="block mb-2">Prioridad</label>
-                  <select name="prioridad" required className="w-full px-4 py-2 border rounded-lg">
-                    <option value="">Seleccione</option>
-                    <option value="Normal">Normal</option>
-                    <option value="Urgente">Urgente</option>
-                  </select>
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                      e.target.value = "";
+                    }
+                  }}
+                >
+                  <option value="">— Seleccionar medicamento —</option>
+                  {inventario
+                    .filter((item) => item.cantidad_disponible > 0)
+                    .map((item) => (
+                      <option key={item.id} value={`${item.nombre}|${item.id}`}>
+                        {item.nombre} ({item.cantidad_disponible} disponibles)
+                      </option>
+                    ))}
+                </select>
+                <textarea
+                  name="medicamentos"
+                  className="mt-3 h-28 w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                  placeholder="Los medicamentos seleccionados aparecerán aquí (una por línea)"
+                />
+                {errorInventario && <p className="mt-2 text-sm text-red-500">{errorInventario}</p>}
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold text-gray-700">Notas y recomendaciones</span>
+                <textarea name="notas_recom" className="h-28 w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100" />
+              </label>
+              <label className="block md:col-span-2">
+                <span className="mb-2 block text-sm font-semibold text-gray-700">Prioridad</span>
+                <select name="prioridad" required className="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100">
+                  <option value="">Seleccione</option>
+                  <option value="Normal">Normal</option>
+                  <option value="Urgente">Urgente</option>
+                </select>
+              </label>
+
+              <div className="flex gap-3 md:col-span-2">
+                <button type="submit" className="rounded-2xl bg-violet-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-violet-800">
                   Guardar
                 </button>
                 <button
                   type="button"
                   onClick={() => setMostrarFormulario(false)}
-                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+                  className="rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
                 >
                   Cancelar
                 </button>
@@ -381,121 +499,125 @@ export default function HistorialPaciente() {
           </div>
         )}
 
+        {consultas.length > 0 && (
+          <div className="overflow-hidden rounded-[28px] border border-violet-100 bg-white shadow-[0_22px_50px_-40px_rgba(76,29,149,0.35)]">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-left">
+                <thead className="bg-violet-50/80">
+                  <tr className="border-b border-violet-100 text-sm text-gray-600">
+                    <th className="px-6 py-4 font-semibold">Fecha</th>
+                    <th className="px-6 py-4 font-semibold">Motivo</th>
+                    <th className="px-6 py-4 font-semibold">Síntomas</th>
+                    <th className="px-6 py-4 font-semibold">Diagnóstico</th>
+                    <th className="px-6 py-4 font-semibold">Medicamentos</th>
+                    <th className="px-6 py-4 font-semibold">Notas</th>
+                    <th className="px-6 py-4 font-semibold">Prioridad</th>
+                    <th className="px-6 py-4 font-semibold">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white">
+                  {consultas.map((consulta) => (
+                    <tr key={consulta.id} className="border-b border-gray-100 align-top hover:bg-violet-50/40">
+                      <td className="px-6 py-4 text-sm text-gray-700">{formatTime(consulta.creado_en)}</td>
+                      <td className="px-6 py-4 text-sm text-gray-800">{consulta.motivo}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{consulta.sintomas || "—"}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{consulta.diagnostico || "—"}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{consulta.medicamentos || "—"}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{consulta.notas_recom || "—"}</td>
+                      <td className="px-6 py-4">
+                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                          consulta.prioridad?.toLowerCase() === "critica"
+                            ? "bg-red-100 text-red-700"
+                            : consulta.prioridad?.toLowerCase() === "alta"
+                              ? "bg-amber-100 text-amber-700"
+                              : "bg-emerald-100 text-emerald-700"
+                        }`}>
+                          {consulta.prioridad}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setEditandoConsulta(consulta)}
+                            className="rounded-lg bg-amber-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-amber-600"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            onClick={() => void eliminarConsulta(consulta.id)}
+                            className="rounded-lg bg-red-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-600"
+                          >
+                            Eliminar
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         {editandoConsulta && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
-              <h3 className="text-lg font-semibold mb-4">Editar consulta</h3>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-[28px] bg-white p-6 shadow-2xl">
+              <h3 className="text-xl font-semibold text-gray-900">Editar consulta</h3>
               <form
+                className="mt-6 grid gap-5 md:grid-cols-2"
                 onSubmit={async (e) => {
                   e.preventDefault();
                   const formData = new FormData(e.currentTarget);
                   await guardarEdicionConsulta(editandoConsulta.id, {
-                    motivo: formData.get('motivo') as string,
-                    sintomas: formData.get('sintomas') as string,
-                    diagnostico: formData.get('diagnostico') as string,
-                    medicamentos: (formData.get('medicamentos') as string) || '',
-                    notas_recom: formData.get('notas_recom') as string,
-                    prioridad: formData.get('prioridad') as string,
+                    motivo: formData.get("motivo") as string,
+                    sintomas: formData.get("sintomas") as string,
+                    diagnostico: formData.get("diagnostico") as string,
+                    medicamentos: (formData.get("medicamentos") as string) || "",
+                    notas_recom: formData.get("notas_recom") as string,
+                    prioridad: formData.get("prioridad") as string,
                   });
                 }}
               >
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block mb-2">Motivo</label>
-                    <input name="motivo" required defaultValue={editandoConsulta.motivo} className="w-full px-4 py-2 border rounded-lg" />
-                  </div>
-                  <div>
-                    <label className="block mb-2">Síntomas</label>
-                    <textarea name="sintomas" defaultValue={editandoConsulta.sintomas || ''} className="w-full px-4 py-2 border rounded-lg h-24" />
-                  </div>
-                  <div>
-                    <label className="block mb-2">Diagnóstico</label>
-                    <textarea name="diagnostico" defaultValue={editandoConsulta.diagnostico || ''} className="w-full px-4 py-2 border rounded-lg h-24" />
-                  </div>
-                  <div>
-                    <label className="block mb-2">Medicamentos (uno por línea)</label>
-                    <textarea name="medicamentos" className="w-full px-4 py-2 border rounded-lg h-24" defaultValue={editandoConsulta.medicamentos || ''} />
-                  </div>
-                  <div>
-                    <label className="block mb-2">Notas y recomendaciones</label>
-                    <textarea name="notas_recom" defaultValue={editandoConsulta.notas_recom || ''} className="w-full px-4 py-2 border rounded-lg h-24" />
-                  </div>
-                  <div>
-                    <label className="block mb-2">Prioridad</label>
-                    <select name="prioridad" required defaultValue={editandoConsulta.prioridad} className="w-full px-4 py-2 border rounded-lg">
-                      <option value="Normal">Normal</option>
-                      <option value="Urgente">Urgente</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <button type="submit" className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700">Guardar cambios</button>
-                  <button type="button" onClick={() => setEditandoConsulta(null)} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Cancelar</button>
+                <label className="block">
+                  <span className="mb-2 block text-sm font-semibold text-gray-700">Motivo</span>
+                  <input defaultValue={editandoConsulta.motivo} name="motivo" required className="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100" />
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-sm font-semibold text-gray-700">Síntomas</span>
+                  <textarea defaultValue={editandoConsulta.sintomas || ""} name="sintomas" className="h-28 w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100" />
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-sm font-semibold text-gray-700">Diagnóstico</span>
+                  <textarea defaultValue={editandoConsulta.diagnostico || ""} name="diagnostico" className="h-28 w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100" />
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-sm font-semibold text-gray-700">Medicamentos</span>
+                  <textarea defaultValue={editandoConsulta.medicamentos || ""} name="medicamentos" className="h-28 w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100" />
+                </label>
+                <label className="block md:col-span-2">
+                  <span className="mb-2 block text-sm font-semibold text-gray-700">Notas y recomendaciones</span>
+                  <textarea defaultValue={editandoConsulta.notas_recom || ""} name="notas_recom" className="h-28 w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100" />
+                </label>
+                <label className="block md:col-span-2">
+                  <span className="mb-2 block text-sm font-semibold text-gray-700">Prioridad</span>
+                  <select defaultValue={editandoConsulta.prioridad} name="prioridad" required className="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100">
+                    <option value="Normal">Normal</option>
+                    <option value="Urgente">Urgente</option>
+                  </select>
+                </label>
+
+                <div className="flex gap-3 md:col-span-2">
+                  <button type="submit" className="rounded-2xl bg-violet-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-violet-800">
+                    Guardar cambios
+                  </button>
+                  <button type="button" onClick={() => setEditandoConsulta(null)} className="rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">
+                    Cancelar
+                  </button>
                 </div>
               </form>
             </div>
           </div>
         )}
-
-        <div className="overflow-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b">
-                <th className="py-2">Fecha</th>
-                <th className="py-2">Motivo</th>
-                <th className="py-2">Síntomas</th>
-                <th className="py-2">Diagnóstico</th>
-                <th className="py-2">Medicamentos</th>
-                <th className="py-2">Notas</th>
-                <th className="py-2">Prioridad</th>
-                <th className="py-2">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {consultas.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="py-4 text-center text-gray-500">
-                    No hay consultas registradas.
-                  </td>
-                </tr>
-              ) : (
-                consultas.map((c) => (
-                  <tr key={c.id} className="border-b hover:bg-gray-50">
-                    <td className="py-2">{new Date(c.creado_en).toLocaleString()}</td>
-                    <td className="py-2">{c.motivo}</td>
-                    <td className="py-2">{c.sintomas || '—'}</td>
-                    <td className="py-2">{c.diagnostico || '—'}</td>
-                    <td className="py-2">{c.medicamentos?.split('\n').join(', ') || '—'}</td>
-                    <td className="py-2">{c.notas_recom || '—'}</td>
-                    <td
-                      className={`py-2 ${
-                        c.prioridad === 'Urgente' ? 'text-red-600' : 'text-green-600'
-                      }`}
-                    >
-                      {c.prioridad}
-                    </td>
-                    <td className="py-2">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setEditandoConsulta(c)}
-                          className="text-sm px-2 py-1 rounded bg-amber-600 text-white hover:bg-amber-700"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          onClick={() => eliminarConsulta(c.id)}
-                          className="text-sm px-2 py-1 rounded bg-red-600 text-white hover:bg-red-700"
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
       </div>
     </div>
   );
