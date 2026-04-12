@@ -1,4 +1,6 @@
-const fallbackApiUrl = "http://localhost:4001";
+const fallbackApiUrl = import.meta.env.DEV
+  ? "http://localhost:4001"
+  : "https://websistemnurse-backend.onrender.com";
 
 export const API_URL =
   import.meta.env.VITE_API_URL?.replace(/\/$/, "") || fallbackApiUrl;

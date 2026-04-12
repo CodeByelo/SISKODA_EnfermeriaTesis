@@ -49,18 +49,39 @@ export const buildAuthHeaders = (headers: HeadersInit = {}) => {
   return normalized;
 };
 
+const DEFAULT_FETCH_TIMEOUT_MS = 15_000;
+
 export const authFetch = async (path: string, init: RequestInit = {}) => {
-  const response = await fetch(`${API_URL}${path}`, {
-    ...init,
-    headers: buildAuthHeaders(init.headers),
-  });
+  const controller = new AbortController();
+  const signal = init.signal ?? controller.signal;
+  const timeoutId = !init.signal
+    ? window.setTimeout(() => controller.abort(), DEFAULT_FETCH_TIMEOUT_MS)
+    : null;
 
-  if (response.status === 401) {
-    clearSession();
-    window.location.href = "/";
+  try {
+    const response = await fetch(`${API_URL}${path}`, {
+      ...init,
+      signal,
+      headers: buildAuthHeaders(init.headers),
+    });
+
+    if (response.status === 401) {
+      clearSession();
+      window.location.href = "/";
+    }
+
+    return response;
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("La solicitud tardo demasiado en responder.");
+    }
+
+    throw error;
+  } finally {
+    if (timeoutId !== null) {
+      window.clearTimeout(timeoutId);
+    }
   }
-
-  return response;
 };
 
 type CacheEntry<T> = {
