@@ -133,21 +133,21 @@ export default function Usuarios() {
               </p>
             </div>
 
-            <div className="ml-auto flex w-full flex-nowrap justify-end gap-2 lg:w-[270px] xl:w-[300px]">
+            <div className="ml-auto flex w-full flex-nowrap justify-end gap-3 lg:w-[330px] xl:w-[360px]">
               <button
                 onClick={() => navigate("/dashboard")}
-                className="inline-flex h-14 w-[96px] shrink-0 items-center justify-center gap-1 rounded-xl border border-white/15 bg-white/10 px-2 py-2 text-[10px] font-semibold leading-none text-white transition hover:bg-white/15"
+                className="inline-flex h-16 w-[112px] shrink-0 items-center justify-center gap-1 rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 text-[11px] font-semibold leading-none text-white transition hover:bg-white/15"
               >
-                <ArrowLeftIcon className="h-3 w-3" />
+                <ArrowLeftIcon className="h-3.5 w-3.5" />
                 Volver al inicio
               </button>
-              <div className="flex h-14 w-[92px] shrink-0 flex-col items-center justify-center rounded-xl border border-white/10 bg-white/10 px-2 py-2 text-center backdrop-blur-sm">
+              <div className="flex h-16 w-[104px] shrink-0 flex-col items-center justify-center rounded-xl border border-white/10 bg-white/10 px-3 py-2.5 text-center backdrop-blur-sm">
                 <p className="text-[9px] uppercase tracking-[0.22em] text-violet-200">Usuarios</p>
-                <p className="mt-0.5 text-sm font-semibold sm:text-base">{users.length}</p>
+                <p className="mt-0.5 text-base font-semibold sm:text-lg">{users.length}</p>
               </div>
-              <div className="flex h-14 w-[92px] shrink-0 flex-col items-center justify-center rounded-xl border border-white/10 bg-white/10 px-2 py-2 text-center backdrop-blur-sm">
+              <div className="flex h-16 w-[104px] shrink-0 flex-col items-center justify-center rounded-xl border border-white/10 bg-white/10 px-3 py-2.5 text-center backdrop-blur-sm">
                 <p className="text-[9px] uppercase tracking-[0.22em] text-violet-200">Tu rol</p>
-                <p className="mt-0.5 whitespace-nowrap text-[10px] font-semibold leading-none sm:text-[11px]">
+                <p className="mt-0.5 whitespace-nowrap text-[11px] font-semibold leading-none sm:text-[12px]">
                   Administrador
                 </p>
               </div>
