@@ -1,59 +1,66 @@
-import { FiShoppingCart, FiFileText, FiEdit3, FiMail } from 'react-icons/fi';
+import { FiEdit3, FiFileText, FiMail, FiShoppingCart } from 'react-icons/fi';
 
-const DashboardButtons = () => {
+const items = [
+  {
+    icon: <FiShoppingCart />,
+    label: 'Pagina de Farmatodo',
+    url: 'https://www.farmatodo.com.ve/',
+  },
+  {
+    icon: <FiShoppingCart />,
+    label: 'Pagina de Locatel',
+    url: 'https://www.locatel.com.ve/',
+  },
+  {
+    icon: <FiFileText />,
+    label: 'Tipos de documentos',
+    url: 'https://www.ilovepdf.com/',
+  },
+  {
+    icon: <FiEdit3 />,
+    label: 'Corrector ortografico',
+    url: 'https://quillbot.com/es/corrector-ortografico',
+  },
+  {
+    icon: <FiMail />,
+    label: 'Pagina de Gmail',
+    url: 'https://workspace.google.com/intl/es-419/gmail/',
+  },
+];
+
+export default function DashboardButtons() {
   const handleClick = (url: string) => {
     window.open(url, '_blank');
   };
 
-  const items = [
-    { 
-      icon: <FiShoppingCart />, 
-      label: 'Página de Farmatodo',
-      url: 'https://www.farmatodo.com.ve/'
-    },
-    { 
-      icon: <FiShoppingCart />, 
-      label: 'Página de Locatel',
-      url: 'https://www.locatel.com.ve/'
-    },
-    { 
-      icon: <FiFileText />, 
-      label: 'Tipos de documentos',
-      url: 'https://www.ilovepdf.com/'
-    },
-    { 
-      icon: <FiEdit3 />, 
-      label: 'Corrector ortográfico',
-      url: 'https://quillbot.com/es/corrector-ortografico'
-    },
-    { 
-      icon: <FiMail />, 
-      label: 'Página de Gmail',
-      url: 'https://workspace.google.com/intl/es-419/gmail/'
-    }
-  ];
-
   return (
-    <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
-      <div className="flex gap-4 justify-center">
-        {items.map((item, index) => (
+    <section className="mt-8 rounded-2xl bg-white p-5 shadow">
+      <div className="mb-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-500">
+          Accesos rapidos
+        </p>
+        <h3 className="mt-1 text-lg font-semibold text-gray-900">
+          Herramientas complementarias
+        </h3>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
+        {items.map((item) => (
           <button
-            key={index}
+            key={item.label}
             onClick={() => handleClick(item.url)}
-            className="group relative flex flex-col items-center p-4 bg-white rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 w-24 h-24"
+            className="group flex min-h-28 flex-col items-center justify-center rounded-2xl border border-gray-100 bg-gray-50 px-4 py-4 text-center transition hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-white hover:shadow-md"
             aria-label={item.label}
           >
-            <div className="text-indigo-600 group-hover:text-indigo-700 transition-colors duration-300 text-2xl mb-2">
+            <div className="mb-3 text-2xl text-indigo-600 transition-colors group-hover:text-indigo-700">
               {item.icon}
             </div>
-            <span className="text-xs text-gray-600 group-hover:text-gray-800 font-medium transition-colors duration-300 text-center">
+            <span className="text-sm font-medium leading-5 text-gray-700">
               {item.label}
             </span>
           </button>
         ))}
       </div>
-    </div>
+    </section>
   );
-};
-
-export default DashboardButtons;
+}

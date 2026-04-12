@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import DashboardButtons from "../../components/DashboardButtons";
 import {
   ClipboardDocumentCheckIcon,
   CalendarDaysIcon,
@@ -111,6 +112,8 @@ export default function Home() {
               </button>
             ))}
           </div>
+
+          <DashboardButtons />
         </section>
       </main>
     </div>
