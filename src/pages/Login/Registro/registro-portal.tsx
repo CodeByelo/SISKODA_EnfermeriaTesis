@@ -32,73 +32,83 @@ export default function RegistroPortal() {
   };
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#0f172a_0%,#172554_45%,#4c1d95_100%)] px-4 py-10">
-      <div className="mx-auto max-w-lg rounded-[28px] border border-white/10 bg-white/10 p-8 text-white shadow-2xl backdrop-blur">
-        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-200">Portal ISUM</p>
-        <h1 className="mt-4 text-3xl font-semibold">Crear cuenta institucional</h1>
-        <p className="mt-3 text-sm text-violet-100">
-          Usa tu cedula, codigo institucional o correo institucional para vincular tu cuenta.
-        </p>
+    <div className="min-h-screen bg-[linear-gradient(180deg,#0f172a_0%,#172554_45%,#4c1d95_100%)] px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-6xl items-center gap-6 lg:grid-cols-[1fr_minmax(420px,520px)]">
+        <section className="hidden rounded-[32px] border border-white/10 bg-white/10 p-8 text-white shadow-2xl backdrop-blur lg:block">
+          <p className="text-xs font-semibold uppercase tracking-[0.34em] text-violet-200">Portal ISUM</p>
+          <h1 className="mt-5 text-5xl font-semibold tracking-tight">Registro institucional para acceso personal.</h1>
+          <p className="mt-6 max-w-2xl text-base leading-7 text-violet-100">
+            Usa tu cedula, carnet o correo institucional para vincular tu cuenta con tu identidad dentro del sistema.
+          </p>
+        </section>
 
-        {success ? (
-          <div className="mt-6 rounded-2xl border border-emerald-300/30 bg-emerald-400/10 px-4 py-4 text-sm text-emerald-100">
-            Cuenta creada con exito. Redirigiendo al acceso principal...
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-            <div>
-              <label className="mb-2 block text-sm font-medium text-violet-100">Identificador institucional</label>
-              <input
-                value={formData.identifier}
-                onChange={(event) => setFormData((current) => ({ ...current, identifier: event.target.value }))}
-                placeholder="Cedula, carnet o correo institucional"
-                className="w-full rounded-2xl border border-white/15 bg-slate-950/30 px-4 py-3 text-white outline-none"
-                required
-              />
+        <section className="mx-auto w-full max-w-xl rounded-[32px] border border-white/10 bg-white/10 p-6 text-white shadow-2xl backdrop-blur sm:p-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-200">Portal ISUM</p>
+          <h1 className="mt-4 text-3xl font-semibold sm:text-4xl">Crear cuenta institucional</h1>
+          <p className="mt-3 text-sm text-violet-100 sm:text-base">
+            Completa tus datos de acceso para enlazar tu identidad institucional.
+          </p>
+
+          {success ? (
+            <div className="mt-6 rounded-2xl border border-emerald-300/30 bg-emerald-400/10 px-4 py-4 text-sm text-emerald-100">
+              Cuenta creada con exito. Redirigiendo al acceso principal...
             </div>
-            <div>
-              <label className="mb-2 block text-sm font-medium text-violet-100">Correo de acceso</label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(event) => setFormData((current) => ({ ...current, email: event.target.value }))}
-                placeholder="Tu correo para iniciar sesion"
-                className="w-full rounded-2xl border border-white/15 bg-slate-950/30 px-4 py-3 text-white outline-none"
-              />
-            </div>
-            <div>
-              <label className="mb-2 block text-sm font-medium text-violet-100">Contrasena</label>
-              <input
-                type="password"
-                value={formData.password}
-                onChange={(event) => setFormData((current) => ({ ...current, password: event.target.value }))}
-                placeholder="********"
-                className="w-full rounded-2xl border border-white/15 bg-slate-950/30 px-4 py-3 text-white outline-none"
-                required
-              />
-            </div>
-            {error ? (
-              <div className="rounded-2xl border border-rose-300/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
-                {error}
+          ) : (
+            <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-violet-100">Identificador institucional</label>
+                <input
+                  value={formData.identifier}
+                  onChange={(event) => setFormData((current) => ({ ...current, identifier: event.target.value }))}
+                  placeholder="Cedula, carnet o correo institucional"
+                  className="h-12 w-full rounded-2xl border border-white/15 bg-slate-950/30 px-4 text-white outline-none"
+                  required
+                />
               </div>
-            ) : null}
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="submit"
-                className="inline-flex h-11 items-center rounded-full bg-white px-5 text-sm font-semibold text-slate-900"
-              >
-                Crear cuenta
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate("/", { replace: true })}
-                className="inline-flex h-11 items-center rounded-full border border-white/20 px-5 text-sm font-semibold text-white"
-              >
-                Volver al login
-              </button>
-            </div>
-          </form>
-        )}
+              <div>
+                <label className="mb-2 block text-sm font-medium text-violet-100">Correo de acceso</label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(event) => setFormData((current) => ({ ...current, email: event.target.value }))}
+                  placeholder="Tu correo para iniciar sesion"
+                  className="h-12 w-full rounded-2xl border border-white/15 bg-slate-950/30 px-4 text-white outline-none"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-violet-100">Contrasena</label>
+                <input
+                  type="password"
+                  value={formData.password}
+                  onChange={(event) => setFormData((current) => ({ ...current, password: event.target.value }))}
+                  placeholder="********"
+                  className="h-12 w-full rounded-2xl border border-white/15 bg-slate-950/30 px-4 text-white outline-none"
+                  required
+                />
+              </div>
+              {error ? (
+                <div className="rounded-2xl border border-rose-300/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+                  {error}
+                </div>
+              ) : null}
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <button
+                  type="submit"
+                  className="inline-flex h-12 items-center justify-center rounded-2xl bg-white px-5 text-sm font-semibold text-slate-900"
+                >
+                  Crear cuenta
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate("/", { replace: true })}
+                  className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/20 px-5 text-sm font-semibold text-white"
+                >
+                  Volver al login
+                </button>
+              </div>
+            </form>
+          )}
+        </section>
       </div>
     </div>
   );

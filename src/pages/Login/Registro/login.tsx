@@ -58,8 +58,8 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      <div className="absolute inset-0 z-0">
+    <div className="relative min-h-screen overflow-hidden bg-slate-950">
+      <div className="absolute inset-0 z-0 opacity-90">
         <Suspense fallback={<div className="h-full w-full bg-slate-950" />}>
           <LiquidEther
             colors={['#5227FF', '#FF9FFC', '#B19EEF']}
@@ -81,76 +81,113 @@ export default function Login() {
         </Suspense>
       </div>
 
-      <div className="min-h-screen flex items-center justify-center p-4 relative z-10">
-        <div className="w-full max-w-md bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-2xl overflow-hidden border border-gray-700">
-          <div className="p-8">
-            <div className="flex justify-center mb-6">
-              <img
-                src={`${import.meta.env.BASE_URL}ISUMlogo.png`}
-                alt="Logo ISUM"
-                className="h-20 w-auto cursor-pointer transition-all duration-300 hover:scale-105"
-                onClick={() => setClickCount(prev => prev + 1)}
-              />
+      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-7xl items-center px-4 py-8 sm:px-6 lg:px-8">
+        <div className="grid w-full items-stretch gap-6 lg:grid-cols-[1.05fr_minmax(420px,520px)]">
+          <section className="hidden overflow-hidden rounded-[32px] border border-white/10 bg-white/8 p-8 text-white shadow-[0_30px_80px_-40px_rgba(0,0,0,0.7)] backdrop-blur-md lg:flex lg:flex-col lg:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.34em] text-violet-200">ISUM Enfermeria</p>
+              <h1 className="mt-6 max-w-xl text-5xl font-semibold tracking-tight">
+                Control clinico, identidad institucional y seguimiento en una sola capa.
+              </h1>
+              <p className="mt-6 max-w-2xl text-base leading-7 text-slate-200">
+                Accede al sistema institucional para gestionar expedientes, consultas, inventario y reportes con trazabilidad.
+              </p>
             </div>
-            <h2 className="text-3xl font-extrabold text-white text-center mb-4 bg-clip-text">
-              ACCESO RESTRINGIDO
-            </h2>
-            <p className="text-center text-gray-300 mb-8 font-medium">
-              Ingresa tus credenciales para continuar
-            </p>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1">
-                  Correo Electronico
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  placeholder="ejemplo@isum.edu.ve"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-4 py-3 bg-gray-700/50 text-white placeholder-gray-400 border-2 border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  required
-                />
-              </div>
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1">
-                  Contrasena
-                </label>
-                <input
-                  id="password"
-                  type="password"
-                  placeholder="********"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full px-4 py-3 bg-gray-700/50 text-white placeholder-gray-400 border-2 border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  required
-                />
-              </div>
-              {error && (
-                <div className="p-3 bg-red-900/50 text-red-200 rounded-lg text-sm text-center border border-red-600">
-                  {error}
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              {[
+                { label: 'Portal', value: 'Estudiantes y personal' },
+                { label: 'Clinica', value: 'Expedientes y consultas' },
+                { label: 'Operacion', value: 'Inventario y reportes' },
+              ].map((item) => (
+                <article key={item.label} className="rounded-3xl border border-white/10 bg-white/10 p-5">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-violet-200">{item.label}</p>
+                  <p className="mt-3 text-sm leading-6 text-white">{item.value}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className="mx-auto flex w-full max-w-xl items-center">
+            <div className="w-full overflow-hidden rounded-[32px] border border-white/10 bg-slate-900/75 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.85)] backdrop-blur-xl">
+              <div className="px-6 py-8 sm:px-8 sm:py-10">
+                <div className="flex justify-center">
+                  <img
+                    src={`${import.meta.env.BASE_URL}ISUMlogo.png`}
+                    alt="Logo ISUM"
+                    className="h-16 w-auto cursor-pointer transition-transform duration-300 hover:scale-105 sm:h-20"
+                    onClick={() => setClickCount((prev) => prev + 1)}
+                  />
                 </div>
-              )}
-              <button
-                type="submit"
-                disabled={isLoading}
-                className={`w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-lg shadow-lg hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all transform hover:scale-105 flex items-center justify-center ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
-              >
-                {isLoading ? 'Validando...' : 'ACCEDER'}
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate('/registro-portal')}
-                className="w-full rounded-lg border border-white/15 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
-              >
-                Crear cuenta institucional
-              </button>
-            </form>
-          </div>
-          <div className="px-8 py-4 bg-gray-900/50 text-center text-gray-300 text-sm">
-            <p>Sistema de Gestion ISUM | {new Date().getFullYear()}</p>
-          </div>
+
+                <div className="mt-6 text-center">
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-200">Acceso</p>
+                  <h2 className="mt-3 text-3xl font-extrabold text-white sm:text-4xl">Acceso restringido</h2>
+                  <p className="mt-3 text-sm font-medium text-slate-300 sm:text-base">
+                    Ingresa tus credenciales para continuar
+                  </p>
+                </div>
+
+                <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+                  <div>
+                    <label htmlFor="email" className="mb-2 block text-sm font-medium text-slate-200">
+                      Correo electronico
+                    </label>
+                    <input
+                      id="email"
+                      type="email"
+                      placeholder="ejemplo@isum.edu.ve"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      className="h-12 w-full rounded-2xl border border-slate-600 bg-slate-800/70 px-4 text-white placeholder-slate-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="password" className="mb-2 block text-sm font-medium text-slate-200">
+                      Contrasena
+                    </label>
+                    <input
+                      id="password"
+                      type="password"
+                      placeholder="********"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      className="h-12 w-full rounded-2xl border border-slate-600 bg-slate-800/70 px-4 text-white placeholder-slate-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+                      required
+                    />
+                  </div>
+
+                  {error ? (
+                    <div className="rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-center text-sm text-red-200">
+                      {error}
+                    </div>
+                  ) : null}
+
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className={`flex h-12 w-full items-center justify-center rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-4 text-sm font-bold text-white shadow-lg transition hover:from-blue-700 hover:to-purple-700 ${isLoading ? 'cursor-not-allowed opacity-70' : ''}`}
+                  >
+                    {isLoading ? 'Validando...' : 'Acceder'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => navigate('/registro-portal')}
+                    className="flex h-12 w-full items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-4 text-sm font-semibold text-white transition hover:bg-white/10"
+                  >
+                    Crear cuenta institucional
+                  </button>
+                </form>
+              </div>
+
+              <div className="border-t border-white/10 bg-slate-950/30 px-6 py-4 text-center text-sm text-slate-300 sm:px-8">
+                Sistema de Gestion ISUM | {new Date().getFullYear()}
+              </div>
+            </div>
+          </section>
         </div>
       </div>
     </div>
