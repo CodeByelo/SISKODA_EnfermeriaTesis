@@ -1,29 +1,30 @@
-// src/inventario.ts
 import { Router } from 'express';
 import pool from './db';
+import type { AuthRequest } from './auth';
 
 const router = Router();
 
-// GET /api/inventario → Para la tabla de inventario (muestra todos)
 router.get('/', async (_req, res) => {
   try {
     const rows = await pool.query(`
-      SELECT 
-        id, 
-        nombre, 
-        categoria,
-        COALESCE(stock_actual, 0) as stock_actual,
-        COALESCE(stock_minimo, 0) as stock_minimo,
-        fecha_vencimiento,
-        lote,
-        unidad_medida,
-        CASE 
-          WHEN COALESCE(stock_actual, 0) <= COALESCE(stock_minimo, 0) THEN 'Bajo stock'
-          WHEN fecha_vencimiento IS NOT NULL AND fecha_vencimiento < CURRENT_DATE THEN 'Vencido'
+      SELECT
+        ii.id,
+        ii.nombre,
+        ii.categoria,
+        COALESCE(ii.stock_actual, 0) as stock_actual,
+        COALESCE(ii.stock_minimo, 0) as stock_minimo,
+        MIN(il.fecha_vencimiento) as fecha_vencimiento,
+        STRING_AGG(DISTINCT il.lote, ', ') FILTER (WHERE il.lote IS NOT NULL) as lote,
+        ii.unidad_medida,
+        CASE
+          WHEN COALESCE(ii.stock_actual, 0) <= COALESCE(ii.stock_minimo, 0) THEN 'Bajo stock'
+          WHEN MIN(il.fecha_vencimiento) IS NOT NULL AND MIN(il.fecha_vencimiento) < CURRENT_DATE THEN 'Vencido'
           ELSE 'Normal'
         END as estado
-      FROM inventario 
-      ORDER BY nombre ASC
+      FROM inventario_items ii
+      LEFT JOIN inventario_lotes il ON il.inventario_item_id = ii.id
+      GROUP BY ii.id, ii.nombre, ii.categoria, ii.stock_actual, ii.stock_minimo, ii.unidad_medida
+      ORDER BY ii.nombre ASC
     `);
     res.json(rows.rows);
   } catch (err) {
@@ -32,16 +33,16 @@ router.get('/', async (_req, res) => {
   }
 });
 
-// GET /api/inventario/medicamentos → Para el select en "Agregar nueva historia"
 router.get('/medicamentos', async (_req, res) => {
   try {
     const rows = await pool.query(`
-      SELECT 
-        id, 
-        nombre, 
+      SELECT
+        id,
+        nombre,
         COALESCE(stock_actual, 0) as cantidad_disponible
-      FROM inventario 
-      WHERE COALESCE(stock_actual, 0) > 0 
+      FROM inventario_items
+      WHERE COALESCE(stock_actual, 0) > 0
+        AND activo = TRUE
       ORDER BY nombre ASC
     `);
     res.json(rows.rows);
@@ -51,7 +52,6 @@ router.get('/medicamentos', async (_req, res) => {
   }
 });
 
-// POST /api/inventario → crea un nuevo insumo
 router.post('/', async (req, res) => {
   const {
     nombre,
@@ -69,27 +69,40 @@ router.post('/', async (req, res) => {
 
   try {
     const result = await pool.query(
-      `INSERT INTO inventario (
-        nombre,
-        descripcion,
-        categoria,
-        stock_minimo,
-        unidad_medida,
-        lote,
-        fecha_vencimiento,
-        stock_actual
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, 0)
-      RETURNING *`,
+      `
+        INSERT INTO inventario_items (
+          nombre,
+          descripcion,
+          categoria,
+          stock_minimo,
+          unidad_medida,
+          stock_actual
+        ) VALUES ($1, $2, $3, $4, $5, 0)
+        RETURNING *
+      `,
       [
         nombre.trim(),
         descripcion?.trim() || null,
         categoria?.trim() || null,
         Number(stock_minimo) || 5,
         unidad_medida || 'unidades',
-        lote || null,
-        fecha_vencimiento || null
       ]
     );
+
+    if (lote || fecha_vencimiento) {
+      await pool.query(
+        `
+          INSERT INTO inventario_lotes (
+            inventario_item_id,
+            lote,
+            fecha_vencimiento,
+            stock_lote
+          ) VALUES ($1, $2, $3, 0)
+        `,
+        [result.rows[0].id, lote || null, fecha_vencimiento || null]
+      );
+    }
+
     res.status(201).json(result.rows[0]);
   } catch (err: unknown) {
     const error = err instanceof Error ? err : new Error('Error desconocido');
@@ -101,95 +114,178 @@ router.post('/', async (req, res) => {
   }
 });
 
-// POST /api/inventario/entrada → registra entrada de stock
-router.post('/entrada', async (req, res) => {
+router.post('/entrada', async (req: AuthRequest, res) => {
   const { insumo_id, cantidad, lote, fecha_vencimiento } = req.body;
 
   if (!insumo_id || !cantidad || cantidad <= 0) {
-    return res.status(400).json({ error: 'Insumo y cantidad válida son obligatorios' });
+    return res.status(400).json({ error: 'Insumo y cantidad valida son obligatorios' });
   }
 
+  const client = await pool.connect();
+
   try {
-    const result = await pool.query(
-      `UPDATE inventario
-       SET
-         stock_actual = COALESCE(stock_actual, 0) + $1,
-         lote = $2,
-         fecha_vencimiento = $3,
-         actualizado_en = NOW()
-       WHERE id = $4
-       RETURNING *`,
-      [
-        Number(cantidad),
-        lote || null,
-        fecha_vencimiento || null,
-        Number(insumo_id)
-      ]
+    await client.query('BEGIN');
+    const current = await client.query(
+      'SELECT stock_actual FROM inventario_items WHERE id = $1 FOR UPDATE',
+      [Number(insumo_id)]
     );
 
-    if (result.rowCount === 0) {
+    if (current.rowCount === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Insumo no encontrado' });
     }
 
+    const stockAnterior = Number(current.rows[0].stock_actual ?? 0);
+    const cantidadNum = Number(cantidad);
+    const stockResultante = stockAnterior + cantidadNum;
+
+    const result = await client.query(
+      `
+        UPDATE inventario_items
+        SET stock_actual = $1
+        WHERE id = $2
+        RETURNING *
+      `,
+      [stockResultante, Number(insumo_id)]
+    );
+
+    let loteId: number | null = null;
+    if (lote || fecha_vencimiento) {
+      const loteResult = await client.query(
+        `
+          INSERT INTO inventario_lotes (
+            inventario_item_id,
+            lote,
+            fecha_vencimiento,
+            stock_lote
+          ) VALUES ($1, $2, $3, $4)
+          RETURNING id
+        `,
+        [Number(insumo_id), lote || null, fecha_vencimiento || null, cantidadNum]
+      );
+      loteId = loteResult.rows[0].id;
+    }
+
+    await client.query(
+      `
+        INSERT INTO inventario_movimientos (
+          inventario_item_id,
+          inventario_lote_id,
+          tipo_movimiento,
+          cantidad,
+          stock_anterior,
+          stock_resultante,
+          motivo,
+          registrado_por_user_id
+        ) VALUES ($1, $2, 'entrada', $3, $4, $5, $6, $7)
+      `,
+      [
+        Number(insumo_id),
+        loteId,
+        cantidadNum,
+        stockAnterior,
+        stockResultante,
+        'Entrada manual de inventario',
+        req.user?.id ?? null,
+      ]
+    );
+
+    await client.query('COMMIT');
     res.status(200).json(result.rows[0]);
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error('Error al registrar entrada:', err);
     res.status(500).json({ error: 'Error al registrar la entrada' });
+  } finally {
+    client.release();
   }
 });
 
-// POST /api/inventario/salida → registra salida de stock
-router.post('/salida', async (req, res) => {
+router.post('/salida', async (req: AuthRequest, res) => {
   const { insumo_id, cantidad } = req.body;
 
   if (!insumo_id || !cantidad || cantidad <= 0) {
-    return res.status(400).json({ error: 'Insumo y cantidad válida son obligatorios' });
+    return res.status(400).json({ error: 'Insumo y cantidad valida son obligatorios' });
   }
 
   const cantidadNum = Number(cantidad);
   const insumoIdNum = Number(insumo_id);
+  const client = await pool.connect();
 
   try {
-    const check = await pool.query('SELECT stock_actual FROM inventario WHERE id = $1', [insumoIdNum]);
+    await client.query('BEGIN');
+    const check = await client.query(
+      'SELECT stock_actual FROM inventario_items WHERE id = $1 FOR UPDATE',
+      [insumoIdNum]
+    );
 
     if (check.rowCount === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Insumo no encontrado' });
     }
 
-    const stockActual = check.rows[0].stock_actual || 0;
+    const stockActual = Number(check.rows[0].stock_actual ?? 0);
 
     if (stockActual < cantidadNum) {
+      await client.query('ROLLBACK');
       return res.status(400).json({ error: 'Stock insuficiente' });
     }
 
-    const result = await pool.query(
-      `UPDATE inventario
-       SET
-         stock_actual = stock_actual - $1,
-         actualizado_en = NOW()
-       WHERE id = $2
-       RETURNING *`,
-      [cantidadNum, insumoIdNum]
+    const stockResultante = stockActual - cantidadNum;
+
+    const result = await client.query(
+      `
+        UPDATE inventario_items
+        SET stock_actual = $1
+        WHERE id = $2
+        RETURNING *
+      `,
+      [stockResultante, insumoIdNum]
     );
 
+    await client.query(
+      `
+        INSERT INTO inventario_movimientos (
+          inventario_item_id,
+          tipo_movimiento,
+          cantidad,
+          stock_anterior,
+          stock_resultante,
+          motivo,
+          registrado_por_user_id
+        ) VALUES ($1, 'salida', $2, $3, $4, $5, $6)
+      `,
+      [
+        insumoIdNum,
+        cantidadNum,
+        stockActual,
+        stockResultante,
+        'Salida manual de inventario',
+        req.user?.id ?? null,
+      ]
+    );
+
+    await client.query('COMMIT');
     res.status(200).json(result.rows[0]);
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error('Error al registrar salida:', err);
     res.status(500).json({ error: 'Error al registrar la salida' });
+  } finally {
+    client.release();
   }
 });
 
-// DELETE /api/inventario/:id → elimina un insumo (solo si stock = 0)
 router.delete('/:id', async (req, res) => {
   const { id } = req.params;
   const idNum = Number(id);
 
   if (isNaN(idNum)) {
-    return res.status(400).json({ error: 'ID inválido' });
+    return res.status(400).json({ error: 'ID invalido' });
   }
 
   try {
-    const check = await pool.query('SELECT id, stock_actual FROM inventario WHERE id = $1', [idNum]);
+    const check = await pool.query('SELECT id, stock_actual FROM inventario_items WHERE id = $1', [idNum]);
 
     if (check.rowCount === 0) {
       return res.status(404).json({ error: 'Insumo no encontrado' });
@@ -199,7 +295,7 @@ router.delete('/:id', async (req, res) => {
       return res.status(400).json({ error: 'No se puede eliminar un insumo con stock > 0' });
     }
 
-    await pool.query('DELETE FROM inventario WHERE id = $1', [idNum]);
+    await pool.query('DELETE FROM inventario_items WHERE id = $1', [idNum]);
     res.status(204).send();
   } catch (err) {
     console.error('Error al eliminar insumo:', err);

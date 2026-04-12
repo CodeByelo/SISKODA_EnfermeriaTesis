@@ -26,43 +26,10 @@ const formatDay = (value: Date | string | null | undefined) => {
 
 const styleWorksheet = (worksheet: ExcelJS.Worksheet) => {
   const headerRow = worksheet.getRow(1);
-  headerRow.height = 22;
   headerRow.eachCell((cell) => {
     cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-    cell.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FF1F6F78' },
-    };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F6F78' } };
     cell.alignment = { vertical: 'middle', horizontal: 'center' };
-    cell.border = {
-      top: { style: 'thin', color: { argb: 'FFD0D7DE' } },
-      left: { style: 'thin', color: { argb: 'FFD0D7DE' } },
-      bottom: { style: 'thin', color: { argb: 'FFD0D7DE' } },
-      right: { style: 'thin', color: { argb: 'FFD0D7DE' } },
-    };
-  });
-
-  worksheet.eachRow((row, rowNumber) => {
-    if (rowNumber === 1) return;
-    row.eachCell((cell) => {
-      cell.alignment = { vertical: 'middle', horizontal: 'left' };
-      cell.border = {
-        top: { style: 'thin', color: { argb: 'FFE5E7EB' } },
-        left: { style: 'thin', color: { argb: 'FFE5E7EB' } },
-        bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
-        right: { style: 'thin', color: { argb: 'FFE5E7EB' } },
-      };
-    });
-    if (rowNumber % 2 === 0) {
-      row.eachCell((cell) => {
-        cell.fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: 'FFF8FAFC' },
-        };
-      });
-    }
   });
 
   worksheet.columns.forEach((column) => {
@@ -78,7 +45,7 @@ const styleWorksheet = (worksheet: ExcelJS.Worksheet) => {
 const addTableSheet = (
   workbook: ExcelJS.Workbook,
   title: string,
-  columns: Array<{ header: string; key: string; width?: number }>,
+  columns: Array<{ header: string; key: string }>,
   rows: Record<string, string | number>[]
 ) => {
   const worksheet = workbook.addWorksheet(title);
@@ -89,44 +56,13 @@ const addTableSheet = (
   return worksheet;
 };
 
-const applyLowStockHighlight = (worksheet: ExcelJS.Worksheet, stockKey: string, minKey: string) => {
-  const stockColumn = worksheet.columns.find((column) => column.key === stockKey);
-  const minColumn = worksheet.columns.find((column) => column.key === minKey);
-
-  if (!stockColumn?.number || !minColumn?.number) {
-    return;
-  }
-
-  const stockColumnNumber = stockColumn.number;
-  const minColumnNumber = minColumn.number;
-
-  worksheet.eachRow((row, rowNumber) => {
-    if (rowNumber === 1) return;
-    const stockValue = Number(row.getCell(stockColumnNumber).value ?? 0);
-    const minValue = Number(row.getCell(minColumnNumber).value ?? 0);
-
-    if (stockValue <= minValue) {
-      row.eachCell((cell) => {
-        cell.fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: 'FFFEE2E2' },
-        };
-        cell.font = {
-          ...(cell.font ?? {}),
-          color: { argb: 'FF991B1B' },
-        };
-      });
-    }
-  });
-};
-
 router.get('/consultas-por-prioridad', async (_req, res) => {
   try {
     const result = await pool.query(`
       SELECT prioridad, COUNT(*)::int as cantidad
       FROM consultas
-      GROUP BY prioridad;
+      GROUP BY prioridad
+      ORDER BY cantidad DESC
     `);
     res.json(result.rows);
   } catch (err) {
@@ -138,16 +74,13 @@ router.get('/consultas-por-prioridad', async (_req, res) => {
 router.get('/medicamentos-mas-usados', async (_req, res) => {
   try {
     const result = await pool.query(`
-      SELECT 
-        TRIM(UNNEST(string_to_array(medicamentos, E'\n'))) AS medicamento,
-        COUNT(*)::int as uso
-      FROM consultas
-      WHERE medicamentos IS NOT NULL AND medicamentos != ''
-      GROUP BY medicamento
+      SELECT nombre_medicamento as medicamento, SUM(cantidad)::int as uso
+      FROM consulta_medicamentos
+      GROUP BY nombre_medicamento
       ORDER BY uso DESC
-      LIMIT 10;
+      LIMIT 10
     `);
-    res.json(result.rows.filter((row) => row.medicamento?.trim()));
+    res.json(result.rows);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al obtener medicamentos' });
@@ -157,13 +90,11 @@ router.get('/medicamentos-mas-usados', async (_req, res) => {
 router.get('/consultas-por-dia', async (_req, res) => {
   try {
     const result = await pool.query(`
-      SELECT 
-        DATE(creado_en) as fecha,
-        COUNT(*)::int as total
+      SELECT DATE(fecha_consulta) as fecha, COUNT(*)::int as total
       FROM consultas
-      WHERE creado_en >= NOW() - INTERVAL '14 days'
+      WHERE fecha_consulta >= NOW() - INTERVAL '14 days'
       GROUP BY fecha
-      ORDER BY fecha ASC;
+      ORDER BY fecha ASC
     `);
     res.json(result.rows);
   } catch (err) {
@@ -176,10 +107,10 @@ router.get('/stock-por-insumo', async (_req, res) => {
   try {
     const result = await pool.query(`
       SELECT nombre, stock_actual
-      FROM inventario
+      FROM inventario_items
       WHERE stock_actual > 0
       ORDER BY stock_actual DESC
-      LIMIT 10;
+      LIMIT 10
     `);
     res.json(result.rows);
   } catch (err) {
@@ -198,12 +129,12 @@ router.get('/excel', async (req: AuthRequest, res) => {
 
     if (fromDate) {
       dateParams.push(fromDate);
-      dateConditions.push(`c.creado_en >= $${dateParams.length}::date`);
+      dateConditions.push(`c.fecha_consulta >= $${dateParams.length}::date`);
     }
 
     if (toDate) {
       dateParams.push(toDate);
-      dateConditions.push(`c.creado_en < ($${dateParams.length}::date + INTERVAL '1 day')`);
+      dateConditions.push(`c.fecha_consulta < ($${dateParams.length}::date + INTERVAL '1 day')`);
     }
 
     const whereClause = dateConditions.length > 0 ? `WHERE ${dateConditions.join(' AND ')}` : '';
@@ -217,47 +148,46 @@ router.get('/excel', async (req: AuthRequest, res) => {
         ORDER BY total DESC
       `),
       pool.query(`
-        SELECT 
-          nombre,
-          categoria,
-          COALESCE(stock_actual, 0) as stock_actual,
-          COALESCE(stock_minimo, 0) as stock_minimo,
-          unidad_medida,
-          lote,
-          fecha_vencimiento,
-          actualizado_en
-        FROM inventario
-        WHERE COALESCE(stock_actual, 0) > 0
-        ORDER BY nombre
+        SELECT
+          ii.nombre,
+          ii.categoria,
+          ii.stock_actual,
+          ii.stock_minimo,
+          ii.unidad_medida,
+          MIN(il.fecha_vencimiento) as fecha_vencimiento,
+          MAX(ii.actualizado_en) as actualizado_en
+        FROM inventario_items ii
+        LEFT JOIN inventario_lotes il ON il.inventario_item_id = ii.id
+        GROUP BY ii.id, ii.nombre, ii.categoria, ii.stock_actual, ii.stock_minimo, ii.unidad_medida
+        ORDER BY ii.nombre
       `),
       pool.query(`
-        SELECT DATE(c.creado_en) as dia, COUNT(*)::int as total
+        SELECT DATE(c.fecha_consulta) as dia, COUNT(*)::int as total
         FROM consultas c
-        WHERE c.creado_en >= NOW() - INTERVAL '14 days'
+        WHERE c.fecha_consulta >= NOW() - INTERVAL '14 days'
         GROUP BY dia
         ORDER BY dia
       `),
       pool.query(`
-        SELECT 
-          nombre,
-          apellido,
-          carnet_uni,
-          codigo_empleado,
-          tipo_paciente,
-          email,
-          telefono,
-          carrera_depto,
-          categoria,
-          cargo,
-          creado_en
-        FROM expedientes
-        ORDER BY creado_en DESC
+        SELECT
+          p.nombres as nombre,
+          p.apellidos as apellido,
+          p.codigo_institucional,
+          p.tipo_miembro,
+          p.correo_institucional as email,
+          p.telefono,
+          p.carrera_depto,
+          p.categoria,
+          p.cargo,
+          e.creado_en
+        FROM expedientes e
+        INNER JOIN personas p ON p.id = e.persona_id
+        ORDER BY e.creado_en DESC
       `),
       pool.query(`
-        SELECT TRIM(UNNEST(string_to_array(medicamentos, E'\n'))) as medicamento, COUNT(*)::int as veces
-        FROM consultas
-        WHERE medicamentos IS NOT NULL AND medicamentos != ''
-        GROUP BY medicamento
+        SELECT nombre_medicamento as medicamento, SUM(cantidad)::int as veces
+        FROM consulta_medicamentos
+        GROUP BY nombre_medicamento
         ORDER BY veces DESC
         LIMIT 10
       `),
@@ -267,23 +197,27 @@ router.get('/excel', async (req: AuthRequest, res) => {
             c.id,
             c.creado_en,
             c.prioridad,
-            e.tipo_paciente,
-            e.nombre,
-            e.apellido,
-            e.carnet_uni,
-            e.codigo_empleado,
-            e.email,
-            e.telefono,
-            e.carrera_depto,
-            e.categoria,
-            e.cargo,
+            p.tipo_miembro,
+            p.nombres as nombre,
+            p.apellidos as apellido,
+            p.codigo_institucional,
+            p.correo_institucional as email,
+            p.telefono,
+            p.carrera_depto,
+            p.categoria,
+            p.cargo,
             c.motivo,
             c.sintomas,
             c.diagnostico,
-            c.medicamentos,
-            c.notas_recom
+            (
+              SELECT string_agg(cm.nombre_medicamento, E'\n' ORDER BY cm.id)
+              FROM consulta_medicamentos cm
+              WHERE cm.consulta_id = c.id
+            ) as medicamentos,
+            c.notas_recomendacion as notas_recom
           FROM consultas c
-          INNER JOIN expedientes e ON e.id = c.paciente_id
+          INNER JOIN expedientes e ON e.id = c.expediente_id
+          INNER JOIN personas p ON p.id = e.persona_id
           ${whereClause}
           ORDER BY c.creado_en DESC
         `,
@@ -296,41 +230,20 @@ router.get('/excel', async (req: AuthRequest, res) => {
     workbook.created = new Date();
 
     const resumenSheet = workbook.addWorksheet('Resumen');
-    resumenSheet.mergeCells('A1:D1');
     resumenSheet.getCell('A1').value = 'Reporte General de Enfermeria';
-    resumenSheet.getCell('A1').font = { size: 18, bold: true, color: { argb: 'FF16324F' } };
-    resumenSheet.getCell('A1').alignment = { horizontal: 'center', vertical: 'middle' };
-
-    resumenSheet.mergeCells('A2:D2');
     resumenSheet.getCell('A2').value = `Generado: ${formatDate(new Date())}`;
-    resumenSheet.getCell('A2').alignment = { horizontal: 'center' };
-    resumenSheet.getCell('A2').font = { italic: true, color: { argb: 'FF475569' } };
-
     resumenSheet.addRows([
       [],
       ['Indicador', 'Valor'],
       ['Periodo exportado', fromDate || toDate ? `${fromDate ?? 'Inicio'} al ${toDate ?? 'Hoy'}` : 'Historico completo'],
       ['Prioridades registradas', consultasPrioridad.rowCount],
-      ['Insumos con stock', stock.rowCount],
+      ['Insumos en inventario', stock.rowCount],
       ['Dias con consultas en tendencia', tendencia.rowCount],
       ['Expedientes exportados', expedientes.rowCount],
       ['Medicamentos en ranking', medicamentos.rowCount],
       ['Consultas completas', consultasCompletas.rowCount],
       ['Columnas sensibles', isAdmin ? 'Incluidas' : 'Ocultas por rol'],
     ]);
-    resumenSheet.getRow(4).font = { bold: true, color: { argb: 'FFFFFFFF' } };
-    ['A4', 'B4'].forEach((cellRef) => {
-      const cell = resumenSheet.getCell(cellRef);
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F766E' } };
-      cell.alignment = { horizontal: 'center', vertical: 'middle' };
-      cell.border = {
-        top: { style: 'thin', color: { argb: 'FFD0D7DE' } },
-        left: { style: 'thin', color: { argb: 'FFD0D7DE' } },
-        bottom: { style: 'thin', color: { argb: 'FFD0D7DE' } },
-        right: { style: 'thin', color: { argb: 'FFD0D7DE' } },
-      };
-    });
-    resumenSheet.columns = [{ width: 34 }, { width: 22 }, { width: 18 }, { width: 18 }];
 
     addTableSheet(
       workbook,
@@ -339,13 +252,10 @@ router.get('/excel', async (req: AuthRequest, res) => {
         { header: 'Prioridad', key: 'prioridad' },
         { header: 'Total de consultas', key: 'total' },
       ],
-      consultasPrioridad.rows.map((row) => ({
-        prioridad: row.prioridad,
-        total: row.total,
-      }))
+      consultasPrioridad.rows.map((row) => ({ prioridad: row.prioridad, total: row.total }))
     );
 
-    const stockSheet = addTableSheet(
+    addTableSheet(
       workbook,
       'Stock_Insumos',
       [
@@ -353,10 +263,8 @@ router.get('/excel', async (req: AuthRequest, res) => {
         { header: 'Categoria', key: 'categoria' },
         { header: 'Stock actual', key: 'stock_actual' },
         { header: 'Stock minimo', key: 'stock_minimo' },
-        { header: 'Unidad de medida', key: 'unidad_medida' },
-        { header: 'Lote', key: 'lote' },
-        { header: 'Fecha de vencimiento', key: 'fecha_vencimiento' },
-        { header: 'Ultima actualizacion', key: 'actualizado_en' },
+        { header: 'Unidad', key: 'unidad_medida' },
+        { header: 'Vencimiento cercano', key: 'fecha_vencimiento' },
       ],
       stock.rows.map((row) => ({
         nombre: row.nombre,
@@ -364,12 +272,9 @@ router.get('/excel', async (req: AuthRequest, res) => {
         stock_actual: row.stock_actual,
         stock_minimo: row.stock_minimo,
         unidad_medida: row.unidad_medida,
-        lote: row.lote ?? '',
         fecha_vencimiento: formatDay(row.fecha_vencimiento),
-        actualizado_en: formatDate(row.actualizado_en),
       }))
     );
-    applyLowStockHighlight(stockSheet, 'stock_actual', 'stock_minimo');
 
     addTableSheet(
       workbook,
@@ -378,18 +283,14 @@ router.get('/excel', async (req: AuthRequest, res) => {
         { header: 'Dia', key: 'dia' },
         { header: 'Total de consultas', key: 'total' },
       ],
-      tendencia.rows.map((row) => ({
-        dia: formatDay(row.dia),
-        total: row.total,
-      }))
+      tendencia.rows.map((row) => ({ dia: formatDay(row.dia), total: row.total }))
     );
 
     const expedienteColumns = [
       { header: 'Nombre', key: 'nombre' },
       { header: 'Apellido', key: 'apellido' },
-      { header: 'Carnet', key: 'carnet_uni' },
-      { header: 'Codigo de empleado', key: 'codigo_empleado' },
-      { header: 'Tipo de paciente', key: 'tipo_paciente' },
+      { header: 'Codigo institucional', key: 'codigo_institucional' },
+      { header: 'Tipo de miembro', key: 'tipo_miembro' },
       { header: 'Carrera o departamento', key: 'carrera_depto' },
       { header: 'Categoria', key: 'categoria' },
       { header: 'Cargo', key: 'cargo' },
@@ -397,7 +298,7 @@ router.get('/excel', async (req: AuthRequest, res) => {
     ];
 
     if (isAdmin) {
-      expedienteColumns.splice(5, 0, { header: 'Correo', key: 'email' }, { header: 'Telefono', key: 'telefono' });
+      expedienteColumns.splice(4, 0, { header: 'Correo', key: 'email' }, { header: 'Telefono', key: 'telefono' });
     }
 
     addTableSheet(
@@ -407,12 +308,11 @@ router.get('/excel', async (req: AuthRequest, res) => {
       expedientes.rows.map((row) => ({
         nombre: row.nombre,
         apellido: row.apellido,
-        carnet_uni: row.carnet_uni,
-        codigo_empleado: row.codigo_empleado ?? '',
-        tipo_paciente: row.tipo_paciente,
+        codigo_institucional: row.codigo_institucional ?? '',
+        tipo_miembro: row.tipo_miembro,
         email: row.email ?? '',
         telefono: row.telefono ?? '',
-        carrera_depto: row.carrera_depto,
+        carrera_depto: row.carrera_depto ?? '',
         categoria: row.categoria ?? '',
         cargo: row.cargo ?? '',
         creado_en: formatDate(row.creado_en),
@@ -426,21 +326,17 @@ router.get('/excel', async (req: AuthRequest, res) => {
         { header: 'Medicamento', key: 'medicamento' },
         { header: 'Veces registrado', key: 'veces' },
       ],
-      medicamentos.rows.map((row) => ({
-        medicamento: row.medicamento,
-        veces: row.veces,
-      }))
+      medicamentos.rows.map((row) => ({ medicamento: row.medicamento, veces: row.veces }))
     );
 
     const consultasColumns = [
       { header: 'ID consulta', key: 'id' },
       { header: 'Fecha', key: 'creado_en' },
       { header: 'Prioridad', key: 'prioridad' },
-      { header: 'Tipo de paciente', key: 'tipo_paciente' },
+      { header: 'Tipo de miembro', key: 'tipo_miembro' },
       { header: 'Nombre', key: 'nombre' },
       { header: 'Apellido', key: 'apellido' },
-      { header: 'Carnet', key: 'carnet_uni' },
-      { header: 'Codigo de empleado', key: 'codigo_empleado' },
+      { header: 'Codigo institucional', key: 'codigo_institucional' },
       { header: 'Carrera o departamento', key: 'carrera_depto' },
       { header: 'Categoria', key: 'categoria' },
       { header: 'Cargo', key: 'cargo' },
@@ -452,7 +348,7 @@ router.get('/excel', async (req: AuthRequest, res) => {
     ];
 
     if (isAdmin) {
-      consultasColumns.splice(9, 0, { header: 'Correo', key: 'email' }, { header: 'Telefono', key: 'telefono' });
+      consultasColumns.splice(8, 0, { header: 'Correo', key: 'email' }, { header: 'Telefono', key: 'telefono' });
     }
 
     addTableSheet(
@@ -463,11 +359,10 @@ router.get('/excel', async (req: AuthRequest, res) => {
         id: row.id,
         creado_en: formatDate(row.creado_en),
         prioridad: row.prioridad,
-        tipo_paciente: row.tipo_paciente,
+        tipo_miembro: row.tipo_miembro,
         nombre: row.nombre,
         apellido: row.apellido,
-        carnet_uni: row.carnet_uni ?? '',
-        codigo_empleado: row.codigo_empleado ?? '',
+        codigo_institucional: row.codigo_institucional ?? '',
         email: row.email ?? '',
         telefono: row.telefono ?? '',
         carrera_depto: row.carrera_depto ?? '',

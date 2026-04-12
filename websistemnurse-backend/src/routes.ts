@@ -1,26 +1,17 @@
-// src/routes.ts
 import { Router } from 'express';
 import pool from './db';
+import type { AuthRequest } from './auth';
 
 const router = Router();
 
-/**
- * Router principal para crear y gestionar consultas médicas.
- *
- * Resumen:
- * - POST `/` : Crea (o asocia) un expediente de paciente y registra una consulta.
- *   - Si se incluyen `medicamentos`, intenta decrementar stock por cada medicamento listado (una unidad cada uno).
- * - GET `/` : Lista consultas de un paciente (requiere `paciente_id` en query).
- * - DELETE `/:id` : Elimina una consulta por id.
- *
- * Notas importantes:
- * - Opera en transacciones (BEGIN / COMMIT / ROLLBACK) para asegurar consistencia entre `expedientes`, `consultas` e `inventario`.
- * - Valida la existencia de carnet o código de empleado para evitar duplicados cuando corresponda.
- * - Si un medicamento no existe en `inventario` o no tiene stock, la creación de la consulta falla y se hace ROLLBACK.
- */
+const resolveTipoMiembro = (tipoPaciente: string) => {
+  const normalized = tipoPaciente.toLowerCase();
+  if (normalized.includes('estudiante')) return 'estudiante';
+  if (normalized.includes('profesor')) return 'profesor';
+  return 'personal';
+};
 
-
-router.post('/', async (req, res) => {
+router.post('/', async (req: AuthRequest, res) => {
   const {
     tipo_paciente,
     carnet_uni,
@@ -39,7 +30,7 @@ router.post('/', async (req, res) => {
     medicamentos,
     notas_recom,
     prioridad,
-    paciente_id: idFromFrontend
+    paciente_id: expedienteIdFromFrontend
   } = req.body;
 
   if (!motivo || !prioridad) {
@@ -51,85 +42,99 @@ router.post('/', async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    let pacienteId = idFromFrontend ? Number(idFromFrontend) : undefined;
+    let expedienteId = expedienteIdFromFrontend ? Number(expedienteIdFromFrontend) : undefined;
 
-    if (!pacienteId) {
-      if (carnet_uni) {
-        const existing = await client.query(
-          'SELECT id FROM expedientes WHERE carnet_uni = $1 AND tipo_paciente = $2',
-          [carnet_uni, tipo_paciente]
+    if (!expedienteId) {
+      const tipoMiembro = resolveTipoMiembro(tipo_paciente ?? 'personal');
+      const codigoInstitucional = tipoMiembro === 'estudiante' ? carnet_uni : codigo_empleado;
+
+      let personaId: number | undefined;
+
+      if (codigoInstitucional) {
+        const existingPerson = await client.query(
+          'SELECT id FROM personas WHERE codigo_institucional = $1',
+          [codigoInstitucional]
         );
-        if (existing.rows.length > 0) {
-          await client.query('ROLLBACK');
-          client.release();
-          return res.status(409).json({
-            error: 'PACIENTE_EXISTE',
-            message: 'Ya existe un paciente con este carnet y tipo.',
-          });
+        if (existingPerson.rowCount && existingPerson.rows[0]) {
+          personaId = existingPerson.rows[0].id;
         }
       }
 
-      if (codigo_empleado) {
-        const existing = await client.query(
-          'SELECT id FROM expedientes WHERE codigo_empleado = $1 AND tipo_paciente = $2',
-          [codigo_empleado, tipo_paciente]
+      if (!personaId && email) {
+        const existingEmail = await client.query(
+          'SELECT id FROM personas WHERE LOWER(correo_institucional::text) = LOWER($1)',
+          [email]
         );
-        if (existing.rows.length > 0) {
-          pacienteId = existing.rows[0].id;
+        if (existingEmail.rowCount && existingEmail.rows[0]) {
+          personaId = existingEmail.rows[0].id;
         }
       }
 
-      if (!pacienteId) {
-        const pacienteResult = await client.query(
-          `INSERT INTO expedientes (
-            tipo_paciente,
-            carnet_uni,
-            codigo_empleado,
-            nombre,
-            apellido,
-            email,
-            telefono,
-            carrera_depto,
-            categoria,
-            cargo
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-          RETURNING id`,
+      if (!personaId) {
+        const personaResult = await client.query(
+          `
+            INSERT INTO personas (
+              tipo_miembro,
+              codigo_institucional,
+              nombres,
+              apellidos,
+              correo_institucional,
+              telefono,
+              carrera_depto,
+              categoria,
+              cargo
+            ) VALUES ($1::tipo_miembro, $2, $3, $4, $5, $6, $7, $8, $9)
+            RETURNING id
+          `,
           [
-            tipo_paciente,
-            carnet_uni || null,
-            codigo_empleado || null,
+            tipoMiembro,
+            codigoInstitucional || null,
             nombre,
             apellido,
             email || null,
             telefono || null,
             carrera || departamento || null,
             categoria || null,
-            cargo || null
+            cargo || null,
           ]
         );
-        pacienteId = pacienteResult.rows[0].id;
+        personaId = personaResult.rows[0].id;
       }
+
+      const expedienteResult = await client.query(
+        `
+          INSERT INTO expedientes (persona_id)
+          VALUES ($1)
+          ON CONFLICT (persona_id) DO UPDATE SET persona_id = EXCLUDED.persona_id
+          RETURNING id
+        `,
+        [personaId]
+      );
+
+      expedienteId = expedienteResult.rows[0].id;
     }
 
     const consultaResult = await client.query(
-      `INSERT INTO consultas (
-        paciente_id,
-        motivo,
-        sintomas,
-        diagnostico,
-        medicamentos,
-        notas_recom,
-        prioridad
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING id`,
+      `
+        INSERT INTO consultas (
+          expediente_id,
+          profesional_user_id,
+          motivo,
+          sintomas,
+          diagnostico,
+          notas_recomendacion,
+          prioridad
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7::prioridad_consulta)
+        RETURNING id
+      `,
       [
-        pacienteId,
-        motivo || null,
+        expedienteId,
+        req.user?.id ?? null,
+        motivo,
         sintomas || null,
         diagnostico || null,
-        medicamentos || null,
         notas_recom || null,
-        prioridad
+        prioridad,
       ]
     );
 
@@ -137,15 +142,15 @@ router.post('/', async (req, res) => {
 
     if (medicamentos) {
       const listaMedicamentos = typeof medicamentos === 'string'
-        ? medicamentos.split('\n').filter(m => m.trim() !== '')
+        ? medicamentos.split('\n').filter((item: string) => item.trim() !== '')
         : (Array.isArray(medicamentos) ? medicamentos : []);
 
       for (const nombreMedicamento of listaMedicamentos) {
-        const nombreLimpiado = nombreMedicamento.trim();
+        const nombreLimpiado = String(nombreMedicamento).trim();
         if (!nombreLimpiado) continue;
 
         const medResult = await client.query(
-          'SELECT id, stock_actual FROM inventario WHERE LOWER(nombre) = LOWER($1)',
+          'SELECT id, stock_actual FROM inventario_items WHERE LOWER(nombre) = LOWER($1)',
           [nombreLimpiado]
         );
 
@@ -153,32 +158,68 @@ router.post('/', async (req, res) => {
           throw new Error(`Medicamento no encontrado: "${nombreLimpiado}"`);
         }
 
-        const { id: medicamentoId, stock_actual } = medResult.rows[0];
+        const { id: inventarioItemId, stock_actual } = medResult.rows[0];
 
-        if (stock_actual <= 0) {
+        if (Number(stock_actual) <= 0) {
           throw new Error(`No hay stock disponible para: "${nombreLimpiado}"`);
         }
 
+        const stockResultante = Number(stock_actual) - 1;
+
         await client.query(
-          'UPDATE inventario SET stock_actual = stock_actual - 1 WHERE id = $1',
-          [medicamentoId]
+          'UPDATE inventario_items SET stock_actual = $1 WHERE id = $2',
+          [stockResultante, inventarioItemId]
+        );
+
+        await client.query(
+          `
+            INSERT INTO consulta_medicamentos (
+              consulta_id,
+              inventario_item_id,
+              nombre_medicamento,
+              cantidad
+            ) VALUES ($1, $2, $3, 1)
+          `,
+          [consultaId, inventarioItemId, nombreLimpiado]
+        );
+
+        await client.query(
+          `
+            INSERT INTO inventario_movimientos (
+              inventario_item_id,
+              tipo_movimiento,
+              cantidad,
+              stock_anterior,
+              stock_resultante,
+              motivo,
+              referencia_consulta_id,
+              registrado_por_user_id
+            ) VALUES ($1, 'consumo_consulta', 1, $2, $3, $4, $5, $6)
+          `,
+          [
+            inventarioItemId,
+            stock_actual,
+            stockResultante,
+            `Consumo por consulta ${consultaId}`,
+            consultaId,
+            req.user?.id ?? null,
+          ]
         );
       }
     }
 
     await client.query('COMMIT');
-    client.release();
-
     res.status(201).json({ message: 'Consulta creada exitosamente', id: consultaId });
   } catch (err: unknown) {
     await client.query('ROLLBACK');
-    client.release();
     console.error('Error en backend:', err);
     const error = err instanceof Error ? err : new Error('Error desconocido');
     if (error.message.includes('Medicamento no encontrado') || error.message.includes('No hay stock')) {
       return res.status(400).json({ error: error.message });
     }
     res.status(500).json({ error: 'Error al crear la consulta' });
+  } finally {
+    client.release();
   }
 });
 
@@ -189,22 +230,36 @@ router.get('/', async (req, res) => {
       return res.status(400).json({ error: 'Falta paciente_id' });
     }
     const rows = await pool.query(
-      `SELECT id, motivo, sintomas, diagnostico, medicamentos, notas_recom, prioridad, creado_en
-       FROM consultas
-       WHERE paciente_id = $1
-       ORDER BY creado_en DESC`,
+      `
+        SELECT
+          c.id,
+          c.motivo,
+          c.sintomas,
+          c.diagnostico,
+          (
+            SELECT string_agg(cm.nombre_medicamento, E'\n' ORDER BY cm.id)
+            FROM consulta_medicamentos cm
+            WHERE cm.consulta_id = c.id
+          ) as medicamentos,
+          c.notas_recomendacion as notas_recom,
+          c.prioridad,
+          c.creado_en
+        FROM consultas c
+        WHERE c.expediente_id = $1
+        ORDER BY c.creado_en DESC
+      `,
       [Number(paciente_id)]
     );
     res.json(rows.rows);
   } catch (err) {
-    console.error("Error obteniendo consultas:", err);
+    console.error('Error obteniendo consultas:', err);
     res.status(500).json({ error: 'Error al obtener consultas' });
   }
 });
 
 router.put('/:id', async (req, res) => {
   const { id } = req.params;
-  const { motivo, sintomas, diagnostico, medicamentos, notas_recom, prioridad } = req.body;
+  const { motivo, sintomas, diagnostico, notas_recom, prioridad } = req.body;
 
   if (!motivo || !prioridad) {
     return res.status(400).json({ error: 'Motivo y prioridad son obligatorios' });
@@ -212,15 +267,20 @@ router.put('/:id', async (req, res) => {
 
   try {
     const result = await pool.query(
-      `UPDATE consultas SET
-        motivo = $1, sintomas = $2, diagnostico = $3, medicamentos = $4, notas_recom = $5, prioridad = $6
-       WHERE id = $7
-       RETURNING id, motivo, sintomas, diagnostico, medicamentos, notas_recom, prioridad, creado_en`,
+      `
+        UPDATE consultas SET
+          motivo = $1,
+          sintomas = $2,
+          diagnostico = $3,
+          notas_recomendacion = $4,
+          prioridad = $5::prioridad_consulta
+        WHERE id = $6
+        RETURNING id, motivo, sintomas, diagnostico, notas_recomendacion as notas_recom, prioridad, creado_en
+      `,
       [
         motivo ?? null,
         sintomas ?? null,
         diagnostico ?? null,
-        medicamentos ?? null,
         notas_recom ?? null,
         prioridad,
         Number(id)

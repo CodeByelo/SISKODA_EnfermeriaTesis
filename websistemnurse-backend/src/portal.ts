@@ -36,7 +36,7 @@ router.get('/me/profile', async (req: AuthRequest, res) => {
           p.activo,
           e.id as expediente_id,
           e.visibilidad_paciente
-        FROM users u
+        FROM usuarios u
         LEFT JOIN personas p ON p.id = u.persona_id
         LEFT JOIN expedientes e ON e.persona_id = p.id
         WHERE u.id = $1
@@ -80,17 +80,21 @@ router.get('/me/history', async (req: AuthRequest, res) => {
             c.motivo,
             c.sintomas,
             c.diagnostico,
-            c.medicamentos,
-            c.notas_recom,
+            (
+              SELECT string_agg(cm.nombre_medicamento, E'\n' ORDER BY cm.id)
+              FROM consulta_medicamentos cm
+              WHERE cm.consulta_id = c.id
+            ) as medicamentos,
+            c.notas_recomendacion as notas_recom,
             e.id as expediente_id,
             p.id as persona_id,
             p.nombres,
             p.apellidos,
             p.tipo_miembro
-          FROM users u
+          FROM usuarios u
           INNER JOIN personas p ON p.id = u.persona_id
           INNER JOIN expedientes e ON e.persona_id = p.id
-          INNER JOIN consultas c ON c.paciente_id = e.id
+          INNER JOIN consultas c ON c.expediente_id = e.id
           WHERE u.id = $1
           ORDER BY c.creado_en DESC
         `
@@ -102,8 +106,12 @@ router.get('/me/history', async (req: AuthRequest, res) => {
             c.motivo,
             c.sintomas,
             c.diagnostico,
-            c.medicamentos,
-            c.notas_recom,
+            (
+              SELECT string_agg(cm.nombre_medicamento, E'\n' ORDER BY cm.id)
+              FROM consulta_medicamentos cm
+              WHERE cm.consulta_id = c.id
+            ) as medicamentos,
+            c.notas_recomendacion as notas_recom,
             e.id as expediente_id,
             p.id as persona_id,
             p.nombres,
@@ -111,7 +119,7 @@ router.get('/me/history', async (req: AuthRequest, res) => {
             p.tipo_miembro
           FROM personas p
           INNER JOIN expedientes e ON e.persona_id = p.id
-          INNER JOIN consultas c ON c.paciente_id = e.id
+          INNER JOIN consultas c ON c.expediente_id = e.id
           WHERE p.id = $1
           ORDER BY c.creado_en DESC
         `;

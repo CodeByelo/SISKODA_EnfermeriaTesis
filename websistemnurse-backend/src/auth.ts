@@ -27,19 +27,43 @@ const getJwtSecret = () => {
   return process.env.JWT_SECRET;
 };
 
+const sanitizeEmail = (value?: string) => value?.trim().toLowerCase();
+
 export const register = async (req: Request, res: Response) => {
-  const { email, password, masterKey } = req.body;
+  const { email, password, masterKey } = req.body as {
+    email?: string;
+    password?: string;
+    masterKey?: string;
+  };
 
   if (masterKey !== process.env.MASTER_KEY) {
     return res.status(403).json({ error: 'Clave maestra incorrecta' });
   }
 
+  if (!email?.trim() || !password?.trim()) {
+    return res.status(400).json({ error: 'Correo y contrasena son obligatorios' });
+  }
+
   try {
+    const normalizedEmail = sanitizeEmail(email);
     const hashedPassword = await bcrypt.hash(password, 10);
-    await pool.query(
-      'INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id, email, role',
-      [email, hashedPassword]
+    const createdPerson = await pool.query(
+      `
+        INSERT INTO personas (tipo_miembro, nombres, apellidos, correo_institucional, activo)
+        VALUES ('interno', 'Administrador', 'Sistema', $1, TRUE)
+        RETURNING id
+      `,
+      [normalizedEmail]
     );
+
+    await pool.query(
+      `
+        INSERT INTO usuarios (email, password_hash, role, persona_id)
+        VALUES ($1, $2, 'admin', $3)
+      `,
+      [normalizedEmail, hashedPassword, createdPerson.rows[0].id]
+    );
+
     res.status(201).json({ message: 'Usuario registrado con exito' });
   } catch (err: unknown) {
     const error = err as { code?: string };
@@ -73,7 +97,7 @@ export const registerPortal = async (req: Request, res: Response) => {
           AND (
             cedula = $1
             OR codigo_institucional = $1
-            OR LOWER(correo_institucional) = LOWER($1)
+            OR LOWER(correo_institucional::text) = LOWER($1)
           )
         LIMIT 1
       `,
@@ -85,11 +109,11 @@ export const registerPortal = async (req: Request, res: Response) => {
     }
 
     const person = personResult.rows[0];
-    const accountEmail = (email?.trim() || person.correo_institucional || `${identifier.trim()}@portal.isum.local`).toLowerCase();
+    const normalizedEmail = sanitizeEmail(email) || sanitizeEmail(person.correo_institucional) || `${identifier.trim()}@portal.isum.local`;
 
     const existingUser = await pool.query(
-      'SELECT id FROM users WHERE email = $1 OR persona_id = $2 LIMIT 1',
-      [accountEmail, person.id]
+      'SELECT id FROM usuarios WHERE email = $1 OR persona_id = $2 LIMIT 1',
+      [normalizedEmail, person.id]
     );
 
     if ((existingUser.rowCount ?? 0) > 0) {
@@ -106,16 +130,21 @@ export const registerPortal = async (req: Request, res: Response) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const created = await pool.query(
       `
-        INSERT INTO users (email, password, role, persona_id, estado_cuenta)
-        VALUES ($1, $2, $3, $4, 'activa')
+        INSERT INTO usuarios (email, password_hash, role, persona_id, estado_cuenta)
+        VALUES ($1, $2, $3::rol_usuario, $4, 'activa')
         RETURNING id, email, role, persona_id
       `,
-      [accountEmail, hashedPassword, roleMap[person.tipo_miembro] ?? 'personal', person.id]
+      [normalizedEmail, hashedPassword, roleMap[person.tipo_miembro] ?? 'personal', person.id]
     );
 
     res.status(201).json({
       message: 'Cuenta creada con exito',
-      user: created.rows[0],
+      user: {
+        id: created.rows[0].id,
+        email: created.rows[0].email,
+        role: created.rows[0].role,
+        personaId: created.rows[0].persona_id,
+      },
     });
   } catch (err: unknown) {
     const error = err as { code?: string };
@@ -130,12 +159,17 @@ export const registerPortal = async (req: Request, res: Response) => {
 };
 
 export const login = async (req: Request, res: Response) => {
-  const { email, password } = req.body;
+  const { email, password } = req.body as { email?: string; password?: string };
 
   try {
+    const normalizedEmail = sanitizeEmail(email);
     const user = await pool.query(
-      'SELECT id, email, password, role, persona_id, estado_cuenta FROM users WHERE email = $1',
-      [email]
+      `
+        SELECT id, email, password_hash, role, persona_id, estado_cuenta
+        FROM usuarios
+        WHERE email = $1
+      `,
+      [normalizedEmail]
     );
 
     if (user.rows.length === 0) {
@@ -146,7 +180,7 @@ export const login = async (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Tu cuenta no esta activa' });
     }
 
-    const validPassword = await bcrypt.compare(password, user.rows[0].password);
+    const validPassword = await bcrypt.compare(password ?? '', user.rows[0].password_hash);
     if (!validPassword) {
       return res.status(401).json({ error: 'Correo o contrasena incorrectos' });
     }
@@ -162,7 +196,7 @@ export const login = async (req: Request, res: Response) => {
       { expiresIn: '24h' }
     );
 
-    await pool.query('UPDATE users SET ultimo_acceso = NOW() WHERE id = $1', [user.rows[0].id]);
+    await pool.query('UPDATE usuarios SET ultimo_acceso = NOW() WHERE id = $1', [user.rows[0].id]);
 
     res.json({
       token,
@@ -196,7 +230,7 @@ export const me = async (req: AuthRequest, res: Response) => {
           p.nombres,
           p.apellidos,
           p.correo_institucional
-        FROM users u
+        FROM usuarios u
         LEFT JOIN personas p ON p.id = u.persona_id
         WHERE u.id = $1
       `,

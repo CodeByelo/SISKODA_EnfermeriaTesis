@@ -18,7 +18,7 @@ router.get('/', async (_req, res) => {
           p.nombres,
           p.apellidos,
           p.tipo_miembro
-        FROM users u
+        FROM usuarios u
         LEFT JOIN personas p ON p.id = u.persona_id
         ORDER BY u.email ASC
       `
@@ -48,7 +48,7 @@ router.patch('/:id/role', async (req: AuthRequest, res) => {
 
   try {
     const result = await pool.query(
-      'UPDATE users SET role = $1 WHERE id = $2 RETURNING id, email, role',
+      'UPDATE usuarios SET role = $1::rol_usuario WHERE id = $2 RETURNING id, email, role',
       [role, targetId]
     );
 

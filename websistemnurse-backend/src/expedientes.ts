@@ -3,6 +3,19 @@ import pool from './db';
 
 const router = Router();
 
+const mapTipoMiembroToPaciente = (tipo: string) => {
+  switch (tipo) {
+    case 'estudiante':
+      return 'Estudiante';
+    case 'profesor':
+      return 'Profesor';
+    case 'personal':
+      return 'Personal Administrativo';
+    default:
+      return 'Interno';
+  }
+};
+
 router.get('/check', async (req, res) => {
   const { carnet, tipo } = req.query;
   if (!carnet || !tipo) {
@@ -10,8 +23,14 @@ router.get('/check', async (req, res) => {
   }
 
   const result = await pool.query(
-    'SELECT id FROM expedientes WHERE carnet_uni = $1 AND tipo_paciente = $2',
-    [carnet, tipo]
+    `
+      SELECT e.id
+      FROM expedientes e
+      INNER JOIN personas p ON p.id = e.persona_id
+      WHERE p.codigo_institucional = $1
+        AND LOWER(p.tipo_miembro::text) = LOWER($2)
+    `,
+    [String(carnet), String(tipo)]
   );
 
   res.json({ exists: result.rows.length > 0 });
@@ -19,7 +38,30 @@ router.get('/check', async (req, res) => {
 
 router.get('/', async (_req, res) => {
   try {
-    const rows = await pool.query('SELECT * FROM expedientes ORDER BY creado_en DESC');
+    const rows = await pool.query(`
+      SELECT
+        e.id,
+        CASE
+          WHEN p.tipo_miembro = 'estudiante' THEN 'Estudiante'
+          WHEN p.tipo_miembro = 'profesor' THEN 'Profesor'
+          WHEN p.tipo_miembro = 'personal' THEN 'Personal Administrativo'
+          ELSE 'Interno'
+        END as tipo_paciente,
+        CASE WHEN p.tipo_miembro = 'estudiante' THEN p.codigo_institucional ELSE NULL END as carnet_uni,
+        CASE WHEN p.tipo_miembro <> 'estudiante' THEN p.codigo_institucional ELSE NULL END as codigo_empleado,
+        p.nombres as nombre,
+        p.apellidos as apellido,
+        p.correo_institucional as email,
+        p.telefono,
+        p.carrera_depto,
+        p.categoria,
+        p.cargo,
+        e.creado_en,
+        e.actualizado_en
+      FROM expedientes e
+      INNER JOIN personas p ON p.id = e.persona_id
+      ORDER BY e.creado_en DESC
+    `);
     res.json(rows.rows);
   } catch (err) {
     console.error('Error al obtener expedientes:', err);
@@ -45,47 +87,45 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: 'Tipo, nombre y apellido son obligatorios' });
   }
 
+  const tipoMiembro =
+    String(tipo_paciente).toLowerCase().includes('estudiante')
+      ? 'estudiante'
+      : String(tipo_paciente).toLowerCase().includes('profesor')
+        ? 'profesor'
+        : 'personal';
+
   try {
-    if (carnet_uni) {
-      const existingCarnet = await pool.query(
-        'SELECT id FROM expedientes WHERE carnet_uni = $1 AND tipo_paciente = $2',
-        [carnet_uni, tipo_paciente]
+    const code = tipoMiembro === 'estudiante' ? carnet_uni : codigo_empleado;
+
+    if (code) {
+      const existingCode = await pool.query(
+        'SELECT id FROM personas WHERE codigo_institucional = $1',
+        [code]
       );
 
-      if ((existingCarnet.rowCount ?? 0) > 0) {
-        return res.status(409).json({ error: 'Ya existe un expediente con ese carnet' });
+      if ((existingCode.rowCount ?? 0) > 0) {
+        return res.status(409).json({ error: 'Ya existe una persona con ese codigo institucional' });
       }
     }
 
-    if (codigo_empleado) {
-      const existingCodigo = await pool.query(
-        'SELECT id FROM expedientes WHERE codigo_empleado = $1 AND tipo_paciente = $2',
-        [codigo_empleado, tipo_paciente]
-      );
-
-      if ((existingCodigo.rowCount ?? 0) > 0) {
-        return res.status(409).json({ error: 'Ya existe un expediente con ese codigo de empleado' });
-      }
-    }
-
-    const result = await pool.query(
-      `INSERT INTO expedientes (
-        tipo_paciente,
-        carnet_uni,
-        codigo_empleado,
-        nombre,
-        apellido,
-        email,
-        telefono,
-        carrera_depto,
-        categoria,
-        cargo
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-      RETURNING *`,
+    const person = await pool.query(
+      `
+        INSERT INTO personas (
+          tipo_miembro,
+          codigo_institucional,
+          nombres,
+          apellidos,
+          correo_institucional,
+          telefono,
+          carrera_depto,
+          categoria,
+          cargo
+        ) VALUES ($1::tipo_miembro, $2, $3, $4, $5, $6, $7, $8, $9)
+        RETURNING *
+      `,
       [
-        tipo_paciente,
-        carnet_uni || null,
-        codigo_empleado || null,
+        tipoMiembro,
+        code || null,
         nombre.trim(),
         apellido.trim(),
         email || null,
@@ -96,7 +136,30 @@ router.post('/', async (req, res) => {
       ]
     );
 
-    res.status(201).json(result.rows[0]);
+    const expediente = await pool.query(
+      `
+        INSERT INTO expedientes (persona_id)
+        VALUES ($1)
+        RETURNING *
+      `,
+      [person.rows[0].id]
+    );
+
+    res.status(201).json({
+      id: expediente.rows[0].id,
+      tipo_paciente: mapTipoMiembroToPaciente(tipoMiembro),
+      carnet_uni: tipoMiembro === 'estudiante' ? code : null,
+      codigo_empleado: tipoMiembro !== 'estudiante' ? code : null,
+      nombre: person.rows[0].nombres,
+      apellido: person.rows[0].apellidos,
+      email: person.rows[0].correo_institucional,
+      telefono: person.rows[0].telefono,
+      carrera_depto: person.rows[0].carrera_depto,
+      categoria: person.rows[0].categoria,
+      cargo: person.rows[0].cargo,
+      creado_en: expediente.rows[0].creado_en,
+      actualizado_en: expediente.rows[0].actualizado_en,
+    });
   } catch (err) {
     console.error('Error al crear expediente:', err);
     res.status(500).json({ error: 'Error al crear expediente' });
@@ -112,7 +175,34 @@ router.get('/:id', async (req, res) => {
   }
 
   try {
-    const result = await pool.query('SELECT * FROM expedientes WHERE id = $1', [idNum]);
+    const result = await pool.query(
+      `
+        SELECT
+          e.id,
+          CASE
+            WHEN p.tipo_miembro = 'estudiante' THEN 'Estudiante'
+            WHEN p.tipo_miembro = 'profesor' THEN 'Profesor'
+            WHEN p.tipo_miembro = 'personal' THEN 'Personal Administrativo'
+            ELSE 'Interno'
+          END as tipo_paciente,
+          CASE WHEN p.tipo_miembro = 'estudiante' THEN p.codigo_institucional ELSE NULL END as carnet_uni,
+          CASE WHEN p.tipo_miembro <> 'estudiante' THEN p.codigo_institucional ELSE NULL END as codigo_empleado,
+          p.nombres as nombre,
+          p.apellidos as apellido,
+          p.correo_institucional as email,
+          p.telefono,
+          p.carrera_depto,
+          p.categoria,
+          p.cargo,
+          e.creado_en,
+          e.actualizado_en
+        FROM expedientes e
+        INNER JOIN personas p ON p.id = e.persona_id
+        WHERE e.id = $1
+      `,
+      [idNum]
+    );
+
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Expediente no encontrado' });
     }
