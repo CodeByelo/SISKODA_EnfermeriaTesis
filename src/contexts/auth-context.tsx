@@ -32,7 +32,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     () => ({
       token,
       user,
-      isAuthenticated: Boolean(token),
+      isAuthenticated: Boolean(token && user),
       login: (nextToken, nextUser) => {
         setSession(nextToken, nextUser);
         setToken(nextToken);

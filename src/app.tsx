@@ -18,13 +18,27 @@ const Login = lazy(() => import("./pages/Login/Registro/login"));
 const Register = lazy(() => import("./pages/Login/Registro/registro"));
 
 function ProtectedRoutes() {
-  const { isAuthenticated } = useAuth();
-  return isAuthenticated ? <Outlet /> : <Navigate to="/" replace />;
+  const { isAuthenticated, user, token } = useAuth();
+  return isAuthenticated && token && user ? <Outlet /> : <Navigate to="/" replace />;
 }
 
 function PublicRoutes() {
-  const { isAuthenticated } = useAuth();
-  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <Outlet />;
+  const { isAuthenticated, user, token } = useAuth();
+  return isAuthenticated && token && user ? <Navigate to="/dashboard" replace /> : <Outlet />;
+}
+
+function RoleProtectedRoutes({ allowedRoles }: { allowedRoles: string[] }) {
+  const { isAuthenticated, user, token } = useAuth();
+
+  if (!isAuthenticated || !token || !user) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (!allowedRoles.includes(user.role)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <Outlet />;
 }
 
 function AppFallback() {
@@ -58,8 +72,13 @@ export default function App() {
             <Route path="/inventario/salida" element={<SalidaInventario />} />
             <Route path="/inventario/nuevo" element={<NuevoInsumo />} />
             <Route path="/reportes" element={<Reportes />} />
+          </Route>
+
+          <Route element={<RoleProtectedRoutes allowedRoles={["admin"]} />}>
             <Route path="/usuarios" element={<Usuarios />} />
           </Route>
+
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </Suspense>
     </BrowserRouter>
