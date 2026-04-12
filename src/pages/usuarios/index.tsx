@@ -133,21 +133,21 @@ export default function Usuarios() {
               </p>
             </div>
 
-            <div className="ml-auto grid w-full gap-2 sm:grid-cols-2 lg:w-[300px] lg:grid-cols-2 xl:w-[330px] xl:grid-cols-3">
+            <div className="ml-auto flex w-full flex-wrap justify-end gap-2 lg:w-[270px] xl:w-[300px]">
               <button
                 onClick={() => navigate("/dashboard")}
-                className="inline-flex min-w-0 items-center justify-center gap-1 rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 text-xs font-semibold leading-none text-white transition hover:bg-white/15"
+                className="inline-flex h-14 min-w-[104px] items-center justify-center gap-1 rounded-xl border border-white/15 bg-white/10 px-2.5 py-2 text-[11px] font-semibold leading-none text-white transition hover:bg-white/15"
               >
-                <ArrowLeftIcon className="h-3.5 w-3.5" />
+                <ArrowLeftIcon className="h-3 w-3" />
                 Volver al inicio
               </button>
-              <div className="min-w-0 rounded-xl border border-white/10 bg-white/10 px-3 py-2.5 text-center backdrop-blur-sm">
-                <p className="text-[10px] uppercase tracking-[0.28em] text-violet-200">Usuarios</p>
-                <p className="mt-1 text-lg font-semibold sm:text-xl">{users.length}</p>
+              <div className="flex h-14 min-w-[96px] flex-col items-center justify-center rounded-xl border border-white/10 bg-white/10 px-2.5 py-2 text-center backdrop-blur-sm">
+                <p className="text-[9px] uppercase tracking-[0.24em] text-violet-200">Usuarios</p>
+                <p className="mt-0.5 text-base font-semibold sm:text-lg">{users.length}</p>
               </div>
-              <div className="min-w-0 rounded-xl border border-white/10 bg-white/10 px-3 py-2.5 text-center backdrop-blur-sm">
-                <p className="text-[10px] uppercase tracking-[0.28em] text-violet-200">Tu rol</p>
-                <p className="mt-1 break-words text-sm font-semibold leading-tight sm:text-base">
+              <div className="flex h-14 min-w-[96px] flex-col items-center justify-center rounded-xl border border-white/10 bg-white/10 px-2.5 py-2 text-center backdrop-blur-sm">
+                <p className="text-[9px] uppercase tracking-[0.24em] text-violet-200">Tu rol</p>
+                <p className="mt-0.5 whitespace-nowrap text-[11px] font-semibold leading-none sm:text-xs">
                   Administrador
                 </p>
               </div>
