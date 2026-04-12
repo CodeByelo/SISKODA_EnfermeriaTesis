@@ -67,6 +67,7 @@ export default function Home() {
     }
     return true;
   });
+  const dashboardCards = visibleMenu.filter((item) => item.name !== "Salir");
 
   const openMenuItem = (item: MenuItem) => {
     if (item.name === "Salir") {
@@ -139,7 +140,7 @@ export default function Home() {
 
         <section className="p-6">
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
-            {visibleMenu.map((card) => (
+            {dashboardCards.map((card) => (
               <button
                 key={card.name}
                 onClick={() => openMenuItem(card)}
@@ -151,15 +152,13 @@ export default function Home() {
                     <card.icon className="h-8 w-8" />
                   </div>
                   <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-violet-500 ring-1 ring-violet-100">
-                    {card.name === "Salir" ? "Accion" : "Modulo"}
+                    Modulo
                   </span>
                 </div>
                 <h3 className="mt-8 text-xl font-semibold text-gray-900">{card.name}</h3>
                 <p className="mt-3 text-sm leading-6 text-gray-600">{descriptions[card.name]}</p>
                 <div className="mt-6 flex items-center justify-between border-t border-violet-100 pt-4 text-sm">
-                  <span className="font-medium text-gray-500">
-                    {card.name === "Salir" ? "Finaliza tu sesion actual" : "Abrir modulo"}
-                  </span>
+                  <span className="font-medium text-gray-500">Abrir modulo</span>
                   <span className="font-semibold text-violet-700 transition group-hover:translate-x-1">
                     Entrar
                   </span>
