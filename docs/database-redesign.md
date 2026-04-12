@@ -1,175 +1,281 @@
 # Rediseno De Base De Datos
 
-## Base actual
+## Objetivo
 
-El esquema actual tiene cuatro tablas principales:
+Definir un esquema nuevo de base de datos para el sistema de enfermeria, optimizado para:
 
-- `users`
-- `expedientes`
-- `consultas`
-- `inventario`
+- expediente clinico
+- consultas medicas
+- inventario
+- cuentas internas
+- portal para estudiantes, profesores y personal
+- auditoria y seguridad
 
-Ese modelo funciona para una version interna del sistema, pero se queda corto para:
+Este documento ya no plantea una migracion gradual sobre el esquema viejo. Plantea el esquema objetivo recomendado para reconstruir la base correctamente.
 
-- cuentas institucionales para estudiantes, profesores y personal
-- trazabilidad de accesos
-- relacion formal entre cuenta, persona y expediente
-- control correcto de medicamentos usados por consulta
-- historial de movimientos de inventario
+## Problema Del Esquema Actual
 
-## Problemas detectados
+Tu base actual funciona, pero tiene limitaciones estructurales:
 
-### 1. identidad mezclada con expediente
+- mezcla identidad institucional con expediente clinico
+- guarda medicamentos en texto libre dentro de la consulta
+- no tiene historial formal de movimientos de inventario
+- no enlaza correctamente cuentas de acceso con personas reales
+- no tiene una capa limpia para portal personal
+- no tiene auditoria operativa
 
-Hoy `expedientes` guarda datos de identidad de la persona y al mismo tiempo representa el expediente clinico.
+## Enfoque Nuevo
 
-Eso hace dificil:
+El sistema debe separarse en 6 dominios:
 
-- enlazar una cuenta de usuario con una persona real
-- tener varios contextos de uso para la misma persona
-- separar identidad institucional de informacion clinica
+1. identidad institucional
+2. autenticacion y roles
+3. expediente clinico
+4. consultas y tratamiento
+5. inventario y movimientos
+6. auditoria y seguimiento
 
-### 2. users sin enlace con persona
+## Esquema Recomendado
 
-`users` tiene:
+### 1. personas
 
-- `id`
-- `email`
-- `password`
-- `role`
+Representa a la persona real dentro del instituto.
 
-Pero no sabe a quien pertenece la cuenta dentro del instituto.
-
-### 3. consultas guarda medicamentos como texto
-
-`consultas.medicamentos` es texto libre. Eso impide:
-
-- saber cantidades reales usadas
-- relacionar consumo con inventario
-- auditar insumos consumidos por consulta
-
-### 4. inventario sin bitacora de movimientos
-
-La tabla `inventario` guarda el stock actual, pero no el historial de:
-
-- entradas
-- salidas
-- ajustes
-- consumo por consulta
-
-### 5. sin auditoria
-
-No existe una tabla para registrar:
-
-- login
-- cambios de roles
-- exportaciones
-- accesos a expedientes
-
-## Rediseno recomendado
-
-### Mantener
-
-Se mantienen las tablas actuales:
-
-- `users`
-- `expedientes`
-- `consultas`
-- `inventario`
-
-### Agregar
-
-Se agregan:
-
-- `personas`
-- `consulta_medicamentos`
-- `inventario_movimientos`
-- `auditoria_accesos`
-
-## Modelo objetivo
-
-### personas
-
-Representa la identidad institucional.
-
-Una persona puede ser:
+Tipos posibles:
 
 - estudiante
 - profesor
 - personal
 - interno
 
-### users
+Esta tabla centraliza:
+
+- cedula
+- codigo institucional
+- nombres
+- apellidos
+- correo institucional
+- telefono
+- carrera o departamento
+- categoria
+- cargo
+- lapso
+- vencimiento del carnet
+
+### 2. usuarios
 
 Representa la cuenta de acceso.
 
-Se enlaza a `personas` mediante `persona_id`.
+Cada usuario se vincula a una persona.
 
-### expedientes
+Campos clave:
+
+- email
+- password_hash
+- role
+- persona_id
+- estado_cuenta
+- ultimo_acceso
+
+### 3. expedientes
 
 Representa el expediente clinico.
 
-Se enlaza a `personas` mediante `persona_id`.
+Cada expediente pertenece a una persona.
 
-### consultas
+Campos clave:
 
-Representa la atencion clinica registrada para un expediente.
+- persona_id
+- tipo_paciente
+- visibilidad_paciente
+- observaciones_privadas
+- fechas de creacion y actualizacion
 
-### consulta_medicamentos
+La identidad no debe duplicarse aqui.
 
-Representa los medicamentos o insumos usados en una consulta.
+### 4. consultas
 
-### inventario_movimientos
+Representa una atencion clinica.
 
-Registra entradas, salidas, ajustes y consumos asociados al inventario.
+Cada consulta pertenece a un expediente y opcionalmente a un usuario profesional.
 
-### auditoria_accesos
+Campos clave:
 
-Registra eventos sensibles del sistema.
+- expediente_id
+- profesional_user_id
+- motivo
+- sintomas
+- diagnostico
+- notas_recomendacion
+- prioridad
+- fecha_consulta
 
-## Beneficios
+### 5. consulta_medicamentos
 
-- separacion clara entre identidad, cuenta y expediente
-- portal institucional para estudiantes, profesores y personal
-- consumo de medicamentos trazable por consulta
-- inventario auditable
-- seguridad y auditoria de acciones
-- mejor base para reportes futuros
+Relaciona una consulta con uno o varios medicamentos o insumos usados.
 
-## Compatibilidad con tu sistema actual
+Esto reemplaza el campo de texto libre de medicamentos.
 
-El SQL propuesto no obliga a borrar inmediatamente tus tablas actuales.
+Campos clave:
 
-Hace esto:
+- consulta_id
+- inventario_id
+- nombre_medicamento
+- cantidad
+- indicaciones
 
-- agrega estructura faltante
-- mejora restricciones
-- crea relaciones nuevas
-- migra expedientes actuales hacia `personas`
-- deja tus tablas actuales utilizables por el backend mientras haces la transicion
+### 6. inventario_items
 
-## Orden de implementacion recomendado
+Representa cada insumo o medicamento.
 
-1. Ejecutar el SQL de rediseno en Supabase.
-2. Verificar que se crearon `personas`, `consulta_medicamentos`, `inventario_movimientos`, `auditoria_accesos`.
-3. Confirmar que `users.persona_id` y `expedientes.persona_id` quedaron poblados.
-4. Ajustar backend para usar `persona_id` como relacion principal.
-5. Reemplazar el uso de `consultas.medicamentos` como texto por `consulta_medicamentos`.
+Campos clave:
 
-## Archivo SQL
+- nombre
+- descripcion
+- categoria
+- unidad_medida
+- stock_actual
+- stock_minimo
+- activo
 
-El script listo para pegar en el editor SQL de Supabase esta en:
+### 7. inventario_lotes
 
-- `docs/sql/rediseno_bd_supabase.sql`
+Separa lotes, vencimientos y stock por lote.
 
-## Nota importante
+Campos clave:
 
-El script esta pensado para evolucionar la base actual con el menor rompimiento posible.
+- inventario_item_id
+- lote
+- fecha_vencimiento
+- stock_lote
 
-Aun asi:
+### 8. inventario_movimientos
 
-- respalda la base antes de ejecutarlo
-- pruebalo primero en un proyecto de prueba si puedes
-- revisa si tus datos actuales tienen duplicados en `email`, `carnet_uni`, `codigo_empleado` o `nombre`
+Bitacora de entradas, salidas, ajustes y consumos.
 
-Si hay duplicados reales, primero debes limpiarlos para que las restricciones funcionen bien.
+Campos clave:
+
+- inventario_item_id
+- inventario_lote_id
+- tipo_movimiento
+- cantidad
+- stock_anterior
+- stock_resultante
+- referencia_consulta_id
+- registrado_por_user_id
+- motivo
+
+### 9. auditoria_accesos
+
+Bitacora de acciones sensibles.
+
+Campos clave:
+
+- user_id
+- persona_id
+- accion
+- modulo
+- recurso
+- ip
+- user_agent
+- metadata
+
+## Relaciones Principales
+
+- `personas 1 -> 1 usuarios`
+- `personas 1 -> 1 expedientes`
+- `expedientes 1 -> n consultas`
+- `consultas 1 -> n consulta_medicamentos`
+- `inventario_items 1 -> n inventario_lotes`
+- `inventario_items 1 -> n inventario_movimientos`
+- `consultas 1 -> n inventario_movimientos` cuando el movimiento sea consumo
+
+## Ventajas Del Nuevo Esquema
+
+### Identidad limpia
+
+La persona institucional existe una sola vez.
+
+### Seguridad real
+
+La cuenta de acceso queda vinculada a una persona y un rol.
+
+### Portal personal correcto
+
+Estudiantes, profesores y personal pueden entrar a ver solo su informacion.
+
+### Expediente mejor estructurado
+
+El expediente deja de ser una tabla mezclada con datos institucionales.
+
+### Inventario trazable
+
+Se sabe que entro, que salio, en que lote, cuando vencio y en que consulta se consumio.
+
+### Reportes mas fuertes
+
+Ya puedes generar reportes por:
+
+- tipo de miembro
+- carrera
+- frecuencia de consultas
+- medicamentos mas usados
+- lotes proximos a vencer
+- consumo por periodo
+
+## Decisiones De Modelado
+
+### Por que separar personas y expedientes
+
+Porque una persona no es lo mismo que un expediente. El expediente es la historia clinica de esa persona.
+
+### Por que separar consulta_medicamentos
+
+Porque guardar medicamentos en texto libre rompe inventario, auditoria y reportes.
+
+### Por que separar inventario_lotes
+
+Porque el vencimiento y el lote no pertenecen al item general, sino a entradas especificas.
+
+### Por que mantener auditoria separada
+
+Porque seguridad y operacion no deben mezclarse con el modulo clinico.
+
+## Tablas Finales Recomendadas
+
+- `personas`
+- `usuarios`
+- `expedientes`
+- `consultas`
+- `consulta_medicamentos`
+- `inventario_items`
+- `inventario_lotes`
+- `inventario_movimientos`
+- `auditoria_accesos`
+
+## Qué Haria Con Las Tablas Viejas
+
+Si vas a reconstruir desde cero:
+
+- `users` pasa a `usuarios`
+- `inventario` se reemplaza por `inventario_items`
+- `expedientes` y `consultas` se rediseñan
+
+Si quieres mantener nombres actuales por compatibilidad de backend, se puede hacer, pero a nivel de diseño el modelo superior es el descrito arriba.
+
+## Recomendacion Practica
+
+Si de verdad quieres optimizar el sistema, yo haria esto:
+
+1. crear una base nueva con el esquema objetivo
+2. migrar datos utiles de la base vieja
+3. adaptar backend a ese nuevo esquema
+4. despues retirar el esquema anterior
+
+Eso es mas limpio que seguir parchando la estructura actual.
+
+## SQL
+
+El SQL completo del esquema nuevo esta en:
+
+- `docs/sql/esquema_nuevo_supabase.sql`

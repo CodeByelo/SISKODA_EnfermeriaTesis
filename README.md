@@ -14,7 +14,7 @@ Enlaces rapidos
 - Componentes principales: `docs/components.md`
 - Endpoints/API: `docs/endpoints.md`
 - Rediseno de base de datos: `docs/database-redesign.md`
-- SQL para Supabase: `docs/sql/rediseno_bd_supabase.sql`
+- SQL del esquema nuevo para Supabase: `docs/sql/esquema_nuevo_supabase.sql`
 - Portal personal, identidad y seguimiento: `docs/portal-identidad-seguimiento.md`
 - Guia de contribucion: `docs/contributing.md`
 
