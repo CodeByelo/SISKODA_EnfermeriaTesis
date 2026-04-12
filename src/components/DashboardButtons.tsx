@@ -3,12 +3,12 @@ import { FiEdit3, FiFileText, FiMail, FiShoppingCart } from 'react-icons/fi';
 const items = [
   {
     icon: <FiShoppingCart />,
-    label: 'Pagina de Farmatodo',
+    label: 'Página de Farmatodo',
     url: 'https://www.farmatodo.com.ve/',
   },
   {
     icon: <FiShoppingCart />,
-    label: 'Pagina de Locatel',
+    label: 'Página de Locatel',
     url: 'https://www.locatel.com.ve/',
   },
   {
@@ -18,12 +18,12 @@ const items = [
   },
   {
     icon: <FiEdit3 />,
-    label: 'Corrector ortografico',
+    label: 'Corrector ortográfico',
     url: 'https://quillbot.com/es/corrector-ortografico',
   },
   {
     icon: <FiMail />,
-    label: 'Pagina de Gmail',
+    label: 'Página de Gmail',
     url: 'https://workspace.google.com/intl/es-419/gmail/',
   },
 ];
@@ -37,7 +37,7 @@ export default function DashboardButtons() {
     <section className="mt-8 rounded-2xl bg-white p-5 shadow">
       <div className="mb-4">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-500">
-          Accesos rapidos
+          Accesos rápidos
         </p>
         <h3 className="mt-1 text-lg font-semibold text-gray-900">
           Herramientas complementarias

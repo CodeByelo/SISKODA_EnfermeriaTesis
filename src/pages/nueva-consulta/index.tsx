@@ -199,7 +199,7 @@ export default function NuevaConsulta() {
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-violet-200">
                 Nueva consulta
               </p>
-              <h1 className="mt-3 text-4xl font-semibold tracking-tight">Registro clinico</h1>
+              <h1 className="mt-3 text-4xl font-semibold tracking-tight">Registro clínico</h1>
               <p className="mt-3 max-w-2xl text-sm leading-7 text-violet-100">
                 Un formulario sobrio y coherente con el resto del sistema, organizado por etapas para
                 capturar la consulta con mas claridad.

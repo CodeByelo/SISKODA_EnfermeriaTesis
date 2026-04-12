@@ -37,12 +37,12 @@ export default function Home() {
         <div className="flex items-center justify-between border-b p-4">
           <div>
             <h1 className="text-xl font-bold text-indigo-600">ISUM</h1>
-            <p className="mt-1 text-xs text-gray-500">{user?.email ?? "Sesion activa"}</p>
+            <p className="mt-1 text-xs text-gray-500">{user?.email ?? "Sesión activa"}</p>
           </div>
           <button
             className="md:hidden"
             onClick={() => setSidebarOpen(false)}
-            aria-label="Cerrar menu"
+            aria-label="Cerrar menú"
           >
             <XMarkIcon className="h-6 w-6 text-gray-600" />
           </button>
@@ -80,13 +80,13 @@ export default function Home() {
           <button
             className="md:hidden"
             onClick={() => setSidebarOpen(true)}
-            aria-label="Abrir menu"
+            aria-label="Abrir menú"
           >
             <Bars3Icon className="h-6 w-6 text-gray-600" />
           </button>
           <div className="flex-1 px-4">
             <h2 className="text-2xl font-semibold text-gray-800">Dashboard</h2>
-            <p className="text-sm text-gray-500">Acceso rapido a modulos y reportes.</p>
+            <p className="text-sm text-gray-500">Acceso rápido a módulos y reportes.</p>
           </div>
           <span className="text-sm text-gray-500">{user?.role ?? "Enfermeria"}</span>
         </header>
@@ -107,7 +107,7 @@ export default function Home() {
                 <card.icon className="mb-4 h-10 w-10 text-indigo-600" />
                 <h3 className="text-lg font-semibold text-gray-800">{card.name}</h3>
                 <p className="mt-1 text-sm text-gray-500">
-                  Accede al modulo de {card.name.toLowerCase()}
+                  Accede al módulo de {card.name.toLowerCase()}
                 </p>
               </button>
             ))}
