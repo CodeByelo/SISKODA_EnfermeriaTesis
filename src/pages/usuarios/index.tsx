@@ -122,7 +122,7 @@ export default function Usuarios() {
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(109,40,217,0.08),_transparent_34%),linear-gradient(180deg,#f8f7ff_0%,#f5f5f7_100%)] px-6 py-8">
       <div className="mx-auto max-w-6xl space-y-6">
         <section className="overflow-hidden rounded-[28px] border border-violet-100 bg-white shadow-[0_24px_60px_-36px_rgba(76,29,149,0.35)]">
-          <div className="flex flex-col gap-6 border-b border-violet-100 bg-gradient-to-r from-[#23102f] via-[#34164c] to-[#4c1d72] px-6 py-6 text-white 2xl:flex-row 2xl:items-center 2xl:justify-between">
+          <div className="flex flex-col gap-6 border-b border-violet-100 bg-gradient-to-r from-[#23102f] via-[#34164c] to-[#4c1d72] px-6 py-6 text-white lg:flex-row lg:items-center lg:justify-between">
             <div className="max-w-2xl">
               <p className="text-xs font-semibold uppercase tracking-[0.35em] text-violet-200">
                 Administración
@@ -133,7 +133,7 @@ export default function Usuarios() {
               </p>
             </div>
 
-            <div className="grid w-full gap-3 sm:grid-cols-2 xl:w-[360px] xl:grid-cols-2 2xl:w-[500px] 2xl:grid-cols-3">
+            <div className="ml-auto grid w-full gap-3 sm:grid-cols-2 lg:w-[360px] lg:grid-cols-2 xl:w-[420px] xl:grid-cols-3">
               <button
                 onClick={() => navigate("/dashboard")}
                 className="inline-flex min-w-0 items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-semibold leading-none text-white transition hover:bg-white/15"
