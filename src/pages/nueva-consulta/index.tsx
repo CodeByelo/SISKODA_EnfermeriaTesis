@@ -194,7 +194,7 @@ export default function NuevaConsulta() {
     <div className="min-h-screen bg-gradient-to-br from-white via-violet-50 to-gray-100 p-6">
       <div className="mx-auto max-w-6xl">
         <div className="mb-6 rounded-[28px] bg-gradient-to-r from-[#1d1029] via-[#2e1742] to-[#4f2671] p-8 text-white shadow-2xl">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-violet-200">
                 Nueva consulta
@@ -206,9 +206,9 @@ export default function NuevaConsulta() {
               </p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 self-center sm:grid-cols-3">
               {resumen.map((item) => (
-                <div key={item.etiqueta} className="rounded-2xl border border-white/10 bg-white/10 px-4 py-4 backdrop-blur-sm">
+                <div key={item.etiqueta} className="flex min-h-[104px] flex-col justify-center rounded-2xl border border-white/10 bg-white/10 px-4 py-4 backdrop-blur-sm">
                   <p className="text-[11px] uppercase tracking-[0.2em] text-violet-200">{item.etiqueta}</p>
                   <p className="mt-2 text-sm font-semibold text-white">{item.valor}</p>
                 </div>
