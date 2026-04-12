@@ -94,18 +94,6 @@ export default function Login() {
               </p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-3">
-              {[
-                { label: 'Portal', value: 'Estudiantes y personal' },
-                { label: 'Clinica', value: 'Expedientes y consultas' },
-                { label: 'Operacion', value: 'Inventario y reportes' },
-              ].map((item) => (
-                <article key={item.label} className="rounded-3xl border border-slate-200 bg-slate-50/90 p-4 xl:p-5">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-violet-500">{item.label}</p>
-                  <p className="mt-2 text-sm leading-6 text-slate-700">{item.value}</p>
-                </article>
-              ))}
-            </div>
           </section>
 
           <section className="mx-auto flex w-full max-w-xl items-center">
