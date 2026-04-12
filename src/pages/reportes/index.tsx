@@ -255,7 +255,7 @@ export default function Reportes() {
 
         <section className="rounded-3xl bg-white shadow-lg">
           <div className="border-b border-gray-100 px-8 py-7">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-500">
                   Consola analitica
@@ -263,8 +263,9 @@ export default function Reportes() {
                 <h2 className="mt-2 text-3xl font-semibold text-gray-900">Indicadores clave</h2>
               </div>
 
-              <div className="flex flex-wrap gap-3">
-                <label className="flex flex-col gap-2 rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-3 text-sm text-gray-700">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/60 px-3 py-2">
+                  <label className="flex min-w-[168px] flex-col gap-1 text-sm text-gray-700">
                   <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
                     Desde
                   </span>
@@ -272,10 +273,10 @@ export default function Reportes() {
                     type="date"
                     value={fechaDesde}
                     onChange={(event) => setFechaDesde(event.target.value)}
-                    className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm text-gray-800 outline-none"
+                    className="h-10 rounded-xl border border-emerald-200 bg-white px-3 text-sm text-gray-800 outline-none"
                   />
-                </label>
-                <label className="flex flex-col gap-2 rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-3 text-sm text-gray-700">
+                  </label>
+                  <label className="flex min-w-[168px] flex-col gap-1 text-sm text-gray-700">
                   <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
                     Hasta
                   </span>
@@ -283,20 +284,21 @@ export default function Reportes() {
                     type="date"
                     value={fechaHasta}
                     onChange={(event) => setFechaHasta(event.target.value)}
-                    className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm text-gray-800 outline-none"
+                    className="h-10 rounded-xl border border-emerald-200 bg-white px-3 text-sm text-gray-800 outline-none"
                   />
-                </label>
+                  </label>
+                </div>
                 <button
                   onClick={() => void exportToExcel()}
                   disabled={exporting}
-                  className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
+                  className="inline-flex h-11 items-center gap-2 rounded-full bg-emerald-600 px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   <ArrowDownTrayIcon className="h-5 w-5" />
                   {exporting ? "Exportando..." : "Exportar a Excel"}
                 </button>
                 <button
                   onClick={() => nav("/dashboard")}
-                  className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700"
+                  className="inline-flex h-11 items-center gap-2 rounded-full border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700"
                 >
                   <ArrowLongLeftIcon className="h-5 w-5" />
                   Volver al inicio
