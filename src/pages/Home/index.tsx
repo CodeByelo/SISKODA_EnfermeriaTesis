@@ -33,18 +33,18 @@ const menu: MenuItem[] = [
 ];
 
 const descriptions: Record<string, string> = {
-  "Nueva Consulta": "Registra atenciones clínicas con orden, seguimiento y mejor lectura operativa.",
-  "Consultas de Hoy": "Supervisa la jornada activa y entra rápido a la atención pendiente.",
-  Expedientes: "Gestiona pacientes, historial médico y continuidad clínica.",
-  Inventario: "Controla insumos, entradas, salidas y existencias del área.",
-  Reportes: "Consulta métricas, tendencias y resúmenes para la toma de decisiones.",
+  "Nueva Consulta": "Registra atenciones clinicas con orden, seguimiento y mejor lectura operativa.",
+  "Consultas de Hoy": "Supervisa la jornada activa y entra rapido a la atencion pendiente.",
+  Expedientes: "Gestiona pacientes, historial medico y continuidad clinica.",
+  Inventario: "Controla insumos, entradas, salidas y existencias del area.",
+  Reportes: "Consulta metricas, tendencias y resumenes para la toma de decisiones.",
   Usuarios: "Administra cuentas internas, accesos y roles del sistema.",
-  Salir: "Cierra la sesión actual de forma segura.",
+  Salir: "Cierra la sesion actual de forma segura.",
 };
 
 const roleLabel: Record<string, string> = {
   admin: "Administrador",
-  enfermeria: "Enfermería",
+  enfermeria: "Enfermeria",
   consulta: "Consulta",
   inventario: "Inventario",
   reportes: "Reportes",
@@ -70,17 +70,17 @@ export default function Home() {
       <aside
         className={`${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } fixed inset-y-0 left-0 z-50 w-64 border-r border-violet-100 bg-white/95 shadow-lg backdrop-blur-sm transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0`}
+        } fixed inset-y-0 left-0 z-50 w-64 transform border-r border-violet-100 bg-white/95 shadow-lg backdrop-blur-sm transition-transform duration-300 ease-in-out md:relative md:translate-x-0`}
       >
         <div className="flex items-center justify-between border-b p-4">
           <div>
             <h1 className="text-xl font-bold text-indigo-600">ISUM</h1>
-            <p className="mt-1 text-xs text-gray-500">{user?.email ?? "Sesión activa"}</p>
+            <p className="mt-1 text-xs text-gray-500">{user?.email ?? "Sesion activa"}</p>
           </div>
           <button
             className="md:hidden"
             onClick={() => setSidebarOpen(false)}
-            aria-label="Cerrar menú"
+            aria-label="Cerrar menu"
           >
             <XMarkIcon className="h-6 w-6 text-gray-600" />
           </button>
@@ -112,45 +112,20 @@ export default function Home() {
           <button
             className="md:hidden"
             onClick={() => setSidebarOpen(true)}
-            aria-label="Abrir menú"
+            aria-label="Abrir menu"
           >
             <Bars3Icon className="h-6 w-6 text-gray-600" />
           </button>
           <div className="flex-1 px-4">
             <h2 className="text-2xl font-semibold text-gray-800">Dashboard</h2>
-            <p className="text-sm text-gray-500">Acceso rápido a módulos, reportes y control operativo.</p>
+            <p className="text-sm text-gray-500">Acceso rapido a modulos, reportes y control operativo.</p>
           </div>
           <span className="rounded-full bg-violet-50 px-3 py-1 text-sm font-medium text-violet-700 ring-1 ring-violet-200">
-            {roleLabel[user?.role ?? "enfermeria"] ?? "Enfermería"}
+            {roleLabel[user?.role ?? "enfermeria"] ?? "Enfermeria"}
           </span>
         </header>
 
         <section className="p-6">
-          <div className="mb-8 overflow-hidden rounded-[28px] border border-violet-100 bg-white shadow-[0_24px_60px_-40px_rgba(76,29,149,0.35)]">
-            <div className="flex flex-col gap-6 bg-gradient-to-r from-[#23102f] via-[#34164c] to-[#4c1d72] px-8 py-8 text-white lg:flex-row lg:items-center lg:justify-between">
-              <div className="max-w-2xl">
-                <p className="text-xs font-semibold uppercase tracking-[0.35em] text-violet-200">
-                  Panel principal
-                </p>
-                <h3 className="mt-3 text-3xl font-semibold">Centro de trabajo clínico</h3>
-                <p className="mt-3 text-sm leading-6 text-violet-100">
-                  Administra consultas, expedientes, inventario y reportes desde una vista coherente. Si eres administrador, también podrás gestionar usuarios y permisos.
-                </p>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl border border-white/10 bg-white/10 px-5 py-4">
-                  <p className="text-xs uppercase tracking-[0.25em] text-violet-200">Módulos</p>
-                  <p className="mt-2 text-3xl font-semibold">{visibleMenu.filter((item) => item.name !== "Salir").length}</p>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-white/10 px-5 py-4">
-                  <p className="text-xs uppercase tracking-[0.25em] text-violet-200">Perfil</p>
-                  <p className="mt-2 text-xl font-semibold">{roleLabel[user?.role ?? "enfermeria"] ?? "Enfermería"}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
             {visibleMenu.map((card) => (
               <button
@@ -164,14 +139,14 @@ export default function Home() {
                     <card.icon className="h-8 w-8" />
                   </div>
                   <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-violet-500 ring-1 ring-violet-100">
-                    {card.name === "Salir" ? "Acción" : "Módulo"}
+                    {card.name === "Salir" ? "Accion" : "Modulo"}
                   </span>
                 </div>
                 <h3 className="mt-8 text-xl font-semibold text-gray-900">{card.name}</h3>
                 <p className="mt-3 text-sm leading-6 text-gray-600">{descriptions[card.name]}</p>
                 <div className="mt-6 flex items-center justify-between border-t border-violet-100 pt-4 text-sm">
                   <span className="font-medium text-gray-500">
-                    {card.name === "Salir" ? "Finaliza tu sesión actual" : "Abrir módulo"}
+                    {card.name === "Salir" ? "Finaliza tu sesion actual" : "Abrir modulo"}
                   </span>
                   <span className="font-semibold text-violet-700 transition group-hover:translate-x-1">
                     Entrar
