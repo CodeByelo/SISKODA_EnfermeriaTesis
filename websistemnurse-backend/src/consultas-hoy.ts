@@ -38,10 +38,10 @@ router.get('/', async (req, res) => {
         c.id,
         p.nombres as nombre,
         p.apellidos as apellido,
-        p.codigo_institucional as carnet_uni,
+        COALESCE(p.codigo_institucional, p.cedula) as carnet_uni,
         c.motivo,
         c.prioridad,
-        TO_CHAR(c.creado_en, 'HH24:MI') AS hora
+        TO_CHAR(c.creado_en, 'HH12:MI AM') AS hora
       FROM consultas c
       INNER JOIN expedientes e ON c.expediente_id = e.id
       INNER JOIN personas p ON e.persona_id = p.id
