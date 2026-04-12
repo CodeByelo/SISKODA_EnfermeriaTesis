@@ -58,8 +58,8 @@ export default function Login() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-slate-950">
-      <div className="absolute inset-0 z-0 opacity-90">
+    <div className="relative min-h-screen overflow-x-hidden bg-[linear-gradient(180deg,#f8fafc_0%,#eef2ff_100%)]">
+      <div className="absolute inset-0 z-0 opacity-40">
         <Suspense fallback={<div className="h-full w-full bg-slate-950" />}>
           <LiquidEther
             colors={['#5227FF', '#FF9FFC', '#B19EEF']}
@@ -83,13 +83,13 @@ export default function Login() {
 
       <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-7xl items-center px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
         <div className="grid w-full items-stretch gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(380px,500px)] lg:gap-6">
-          <section className="hidden overflow-hidden rounded-[32px] border border-white/10 bg-white/8 p-6 text-white shadow-[0_30px_80px_-40px_rgba(0,0,0,0.7)] backdrop-blur-md lg:flex lg:flex-col lg:justify-between xl:p-8">
+          <section className="hidden overflow-hidden rounded-[32px] border border-slate-200/80 bg-white/88 p-6 text-slate-900 shadow-[0_30px_80px_-40px_rgba(76,29,149,0.28)] backdrop-blur-md lg:flex lg:flex-col lg:justify-between xl:p-8">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.34em] text-violet-200">ISUM Enfermeria</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.34em] text-violet-500">ISUM Enfermeria</p>
               <h1 className="mt-5 max-w-xl text-4xl font-semibold tracking-tight xl:text-5xl">
                 Control clinico, identidad institucional y seguimiento en una sola capa.
               </h1>
-              <p className="mt-5 max-w-2xl text-sm leading-6 text-slate-200 xl:text-base xl:leading-7">
+              <p className="mt-5 max-w-2xl text-sm leading-6 text-slate-600 xl:text-base xl:leading-7">
                 Accede al sistema institucional para gestionar expedientes, consultas, inventario y reportes con trazabilidad.
               </p>
             </div>
@@ -100,9 +100,9 @@ export default function Login() {
                 { label: 'Clinica', value: 'Expedientes y consultas' },
                 { label: 'Operacion', value: 'Inventario y reportes' },
               ].map((item) => (
-                <article key={item.label} className="rounded-3xl border border-white/10 bg-white/10 p-4 xl:p-5">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-violet-200">{item.label}</p>
-                  <p className="mt-2 text-sm leading-6 text-white">{item.value}</p>
+                <article key={item.label} className="rounded-3xl border border-slate-200 bg-slate-50/90 p-4 xl:p-5">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-violet-500">{item.label}</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-700">{item.value}</p>
                 </article>
               ))}
             </div>
