@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ArrowLongLeftIcon, ArchiveBoxIcon } from '@heroicons/react/24/outline';
 import { authFetch } from '../../lib/auth';
 import { useNotifications } from '../../contexts/notification-context';
 
@@ -57,113 +58,139 @@ export default function NuevoInsumo() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-2xl mx-auto bg-white rounded-xl shadow p-6">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6">Nuevo Insumo</h1>
-
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block mb-2 font-medium">Nombre *</label>
-            <input
-              name="nombre"
-              value={form.nombre}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="Ej: Paracetamol 500mg"
-              required
-            />
-          </div>
-
-          <div className="mb-4">
-            <label className="block mb-2 font-medium">Descripcion (opcional)</label>
-            <textarea
-              name="descripcion"
-              value={form.descripcion}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-              rows={2}
-            />
-          </div>
-
-          <div className="mb-4">
-            <label className="block mb-2 font-medium">Categoria (opcional)</label>
-            <input
-              name="categoria"
-              value={form.categoria}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="Ej: Medicamento, Material, Equipo"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 mb-4">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(109,40,217,0.08),_transparent_36%),linear-gradient(180deg,#f7f7fb_0%,#f2f4f8_100%)] px-4 py-6 md:px-6">
+      <div className="mx-auto max-w-4xl space-y-6">
+        <section className="rounded-[28px] bg-gradient-to-r from-[#1d1029] via-[#2e1742] to-[#4f2671] p-8 text-white shadow-2xl">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <label className="block mb-2 font-medium">Stock minimo</label>
-              <input
-                name="stock_minimo"
-                type="number"
-                min="0"
-                value={form.stock_minimo}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-violet-200">Inventario</p>
+              <h1 className="mt-3 text-4xl font-semibold tracking-tight">Nuevo insumo</h1>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-violet-100">
+                Crea un insumo con la misma lectura visual operativa del resto del sistema.
+              </p>
             </div>
-            <div>
-              <label className="block mb-2 font-medium">Unidad</label>
-              <select
-                name="unidad_medida"
-                value={form.unidad_medida}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-              >
-                <option value="unidades">unidades</option>
-                <option value="ml">ml</option>
-                <option value="gr">gr</option>
-                <option value="mg">mg</option>
-                <option value="caja">caja</option>
-                <option value="frasco">frasco</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div>
-              <label className="block mb-2 font-medium">Lote (opcional)</label>
-              <input
-                name="lote"
-                value={form.lote}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-            </div>
-            <div>
-              <label className="block mb-2 font-medium">Vencimiento (opcional)</label>
-              <input
-                name="fecha_vencimiento"
-                type="date"
-                value={form.fecha_vencimiento}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-            </div>
-          </div>
-
-          <div className="flex gap-3">
             <button
               type="button"
               onClick={() => nav('/inventario')}
-              className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition"
+              className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/15"
             >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-            >
-              Crear Insumo
+              <ArrowLongLeftIcon className="h-5 w-5" />
+              Volver al inventario
             </button>
           </div>
-        </form>
+        </section>
+
+        <section className="rounded-[28px] bg-white shadow-[0_24px_60px_-36px_rgba(76,29,149,0.25)]">
+          <div className="border-b border-violet-100 px-8 py-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
+                <ArchiveBoxIcon className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-violet-500">Alta de stock</p>
+                <h2 className="mt-1 text-2xl font-semibold text-gray-900">Registro de insumo</h2>
+              </div>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5 px-8 py-8">
+            <div className="grid gap-5 md:grid-cols-2">
+              <div className="md:col-span-2">
+                <label className="mb-2 block text-sm font-semibold text-gray-700">Nombre *</label>
+                <input
+                  name="nombre"
+                  value={form.nombre}
+                  onChange={handleChange}
+                  className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                  placeholder="Ej: Paracetamol 500mg"
+                  required
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="mb-2 block text-sm font-semibold text-gray-700">Descripcion (opcional)</label>
+                <textarea
+                  name="descripcion"
+                  value={form.descripcion}
+                  onChange={handleChange}
+                  className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                  rows={3}
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="mb-2 block text-sm font-semibold text-gray-700">Categoria (opcional)</label>
+                <input
+                  name="categoria"
+                  value={form.categoria}
+                  onChange={handleChange}
+                  className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                  placeholder="Ej: Medicamento, Material, Equipo"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-gray-700">Stock minimo</label>
+                <input
+                  name="stock_minimo"
+                  type="number"
+                  min="0"
+                  value={form.stock_minimo}
+                  onChange={handleChange}
+                  className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-gray-700">Unidad</label>
+                <select
+                  name="unidad_medida"
+                  value={form.unidad_medida}
+                  onChange={handleChange}
+                  className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                >
+                  <option value="unidades">unidades</option>
+                  <option value="ml">ml</option>
+                  <option value="gr">gr</option>
+                  <option value="mg">mg</option>
+                  <option value="caja">caja</option>
+                  <option value="frasco">frasco</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-gray-700">Lote (opcional)</label>
+                <input
+                  name="lote"
+                  value={form.lote}
+                  onChange={handleChange}
+                  className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-gray-700">Vencimiento (opcional)</label>
+                <input
+                  name="fecha_vencimiento"
+                  type="date"
+                  value={form.fecha_vencimiento}
+                  onChange={handleChange}
+                  className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 pt-2 sm:flex-row">
+              <button
+                type="button"
+                onClick={() => nav('/inventario')}
+                className="inline-flex items-center justify-center rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="inline-flex items-center justify-center rounded-2xl bg-violet-700 px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-violet-800"
+              >
+                Crear insumo
+              </button>
+            </div>
+          </form>
+        </section>
       </div>
     </div>
   );
