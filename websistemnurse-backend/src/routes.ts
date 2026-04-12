@@ -11,6 +11,15 @@ const resolveTipoMiembro = (tipoPaciente: string) => {
   return 'personal';
 };
 
+const resolvePrioridad = (prioridad: unknown) => {
+  const normalized = String(prioridad ?? '').trim().toLowerCase();
+  if (['baja', 'low'].includes(normalized)) return 'baja';
+  if (['media', 'normal', 'medium'].includes(normalized)) return 'media';
+  if (['alta', 'high'].includes(normalized)) return 'alta';
+  if (['critica', 'crítica', 'urgent', 'urgente'].includes(normalized)) return 'critica';
+  return 'media';
+};
+
 router.post('/', async (req: AuthRequest, res) => {
   const {
     tipo_paciente,
@@ -134,7 +143,7 @@ router.post('/', async (req: AuthRequest, res) => {
         sintomas || null,
         diagnostico || null,
         notas_recom || null,
-        prioridad,
+        resolvePrioridad(prioridad),
       ]
     );
 
@@ -261,9 +270,9 @@ router.put('/:id', async (req, res) => {
   const { id } = req.params;
   const { motivo, sintomas, diagnostico, notas_recom, prioridad } = req.body;
 
-  if (!motivo || !prioridad) {
-    return res.status(400).json({ error: 'Motivo y prioridad son obligatorios' });
-  }
+    if (!motivo || !prioridad) {
+      return res.status(400).json({ error: 'Motivo y prioridad son obligatorios' });
+    }
 
   try {
     const result = await pool.query(
@@ -282,7 +291,7 @@ router.put('/:id', async (req, res) => {
         sintomas ?? null,
         diagnostico ?? null,
         notas_recom ?? null,
-        prioridad,
+        resolvePrioridad(prioridad),
         Number(id)
       ]
     );
