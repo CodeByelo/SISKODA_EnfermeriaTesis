@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { ShieldCheckIcon, UserGroupIcon } from "@heroicons/react/24/outline";
+import { ArrowLeftIcon, ShieldCheckIcon, UserGroupIcon } from "@heroicons/react/24/outline";
+import { useNavigate } from "react-router-dom";
 import { authFetch } from "../../lib/auth";
 import { useAuth } from "../../contexts/auth-context";
 
@@ -32,6 +33,7 @@ const roleTone: Record<string, string> = {
 };
 
 export default function Usuarios() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -131,7 +133,14 @@ export default function Usuarios() {
               </p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <button
+                onClick={() => navigate("/dashboard")}
+                className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/10 px-5 py-4 text-sm font-semibold text-white transition hover:bg-white/15"
+              >
+                <ArrowLeftIcon className="mr-2 h-4 w-4" />
+                Volver al inicio
+              </button>
               <div className="rounded-2xl border border-white/10 bg-white/10 px-5 py-4 backdrop-blur-sm">
                 <p className="text-xs uppercase tracking-[0.28em] text-violet-200">Usuarios</p>
                 <p className="mt-2 text-2xl font-semibold">{users.length}</p>
