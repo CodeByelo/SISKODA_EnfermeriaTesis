@@ -62,3 +62,41 @@ export const authFetch = async (path: string, init: RequestInit = {}) => {
 
   return response;
 };
+
+type CacheEntry<T> = {
+  data: T;
+  expiresAt: number;
+};
+
+const cacheKey = (key: string) => `cache:${key}`;
+
+export const getCachedJson = <T>(key: string): T | null => {
+  const raw = sessionStorage.getItem(cacheKey(key));
+
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as CacheEntry<T>;
+
+    if (parsed.expiresAt < Date.now()) {
+      sessionStorage.removeItem(cacheKey(key));
+      return null;
+    }
+
+    return parsed.data;
+  } catch {
+    sessionStorage.removeItem(cacheKey(key));
+    return null;
+  }
+};
+
+export const setCachedJson = <T>(key: string, data: T, ttlMs = 60_000) => {
+  const entry: CacheEntry<T> = {
+    data,
+    expiresAt: Date.now() + ttlMs,
+  };
+
+  sessionStorage.setItem(cacheKey(key), JSON.stringify(entry));
+};
