@@ -3,10 +3,9 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLongLeftIcon,
   ArrowLongRightIcon,
-  CheckBadgeIcon,
+  CheckCircleIcon,
   ClipboardDocumentCheckIcon,
   IdentificationIcon,
-  SparklesIcon,
   UserCircleIcon,
 } from "@heroicons/react/24/outline";
 import { useNotifications } from "../../contexts/notification-context";
@@ -42,14 +41,14 @@ const formVacio: ConsultaForm = {
 };
 
 const pasos = [
-  { numero: 1, titulo: "Identidad", texto: "Datos base del paciente.", icono: UserCircleIcon },
-  { numero: 2, titulo: "Perfil", texto: "Contexto academico o laboral.", icono: IdentificationIcon },
-  { numero: 3, titulo: "Evaluacion", texto: "Motivo, sintomas y prioridad.", icono: ClipboardDocumentCheckIcon },
-  { numero: 4, titulo: "Cierre", texto: "Diagnostico y recomendaciones.", icono: CheckBadgeIcon },
+  { numero: 1, titulo: "Paciente", descripcion: "Datos personales", icono: UserCircleIcon },
+  { numero: 2, titulo: "Perfil", descripcion: "Relacion institucional", icono: IdentificationIcon },
+  { numero: 3, titulo: "Evaluacion", descripcion: "Motivo y sintomas", icono: ClipboardDocumentCheckIcon },
+  { numero: 4, titulo: "Cierre", descripcion: "Diagnostico y plan", icono: CheckCircleIcon },
 ];
 
 const inputClass =
-  "w-full rounded-2xl border border-slate-200 bg-white/90 px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:bg-slate-100";
+  "w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-gray-100";
 
 function Campo({
   label,
@@ -60,7 +59,7 @@ function Campo({
 }) {
   return (
     <label className="block space-y-2">
-      <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+      <span className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
         {label}
       </span>
       {children}
@@ -71,9 +70,9 @@ function Campo({
 export default function NuevaConsulta() {
   const nav = useNavigate();
   const { paciente_id } = useParams<{ paciente_id?: string }>();
+  const { notify } = useNotifications();
   const [paso, setPaso] = useState(1);
   const [form, setForm] = useState<ConsultaForm>(formVacio);
-  const { notify } = useNotifications();
 
   useEffect(() => {
     if (!paciente_id) return;
@@ -105,21 +104,6 @@ export default function NuevaConsulta() {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const siguiente = () => paso < 4 && setPaso((actual) => actual + 1);
-  const anterior = () => paso > 1 && setPaso((actual) => actual - 1);
-
-  const progreso = (paso / pasos.length) * 100;
-  const pasoActual = pasos[paso - 1];
-  const resumen = useMemo(
-    () => [
-      { k: "Paciente", v: `${form.nombre || "Sin"} ${form.apellido || "asignar"}` },
-      { k: "Tipo", v: form.tipo_paciente || "Pendiente" },
-      { k: "ID", v: form.carnet_uni || form.codigo_empleado || "No definido" },
-      { k: "Prioridad", v: form.prioridad },
-    ],
-    [form]
-  );
-
   const checkIfPacienteExists = async (carnet: string, tipo: string) => {
     try {
       const res = await authFetch(
@@ -133,8 +117,22 @@ export default function NuevaConsulta() {
     }
   };
 
+  const resumen = useMemo(
+    () => [
+      { etiqueta: "Paciente", valor: `${form.nombre || "Sin"} ${form.apellido || "asignar"}` },
+      { etiqueta: "Tipo", valor: form.tipo_paciente || "Pendiente" },
+      { etiqueta: "Prioridad", valor: form.prioridad },
+    ],
+    [form]
+  );
+
+  const siguiente = () => paso < 4 && setPaso((actual) => actual + 1);
+  const anterior = () => paso > 1 && setPaso((actual) => actual - 1);
+
   const enviar = async () => {
-    if (!form.tipo_paciente) return notify({ tone: "info", title: "Falta el tipo de paciente" });
+    if (!form.tipo_paciente) {
+      return notify({ tone: "info", title: "Falta el tipo de paciente" });
+    }
     if (!form.nombre.trim() || !form.apellido.trim()) {
       return notify({ tone: "info", title: "Nombre y apellido son obligatorios" });
     }
@@ -175,99 +173,87 @@ export default function NuevaConsulta() {
         tension_arterial: undefined,
         frecuencia_cardiaca: undefined,
       });
-      notify({ tone: "success", title: "Consulta guardada", message: "La consulta quedo registrada correctamente." });
+
+      notify({
+        tone: "success",
+        title: "Consulta guardada",
+        message: "La consulta quedo registrada correctamente.",
+      });
       nav("/consultas-hoy");
     } catch (error) {
       console.error("Error al enviar:", error);
-      notify({ tone: "error", title: "No se pudo guardar", message: "Revisa los datos e intenta nuevamente." });
+      notify({
+        tone: "error",
+        title: "No se pudo guardar",
+        message: "Revisa los datos e intenta nuevamente.",
+      });
     }
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.18),_transparent_28%),radial-gradient(circle_at_85%_10%,_rgba(59,130,246,0.18),_transparent_24%),linear-gradient(160deg,_#f8fbff_0%,_#edf4ff_42%,_#f7fafc_100%)]">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <section className="mb-6 overflow-hidden rounded-[32px] bg-slate-950 text-white shadow-[0_30px_80px_rgba(15,23,42,0.18)]">
-          <div className="grid gap-6 px-6 py-7 lg:grid-cols-[1.2fr_0.8fr] lg:px-10">
-            <div className="space-y-4">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-cyan-200">
-                <SparklesIcon className="h-4 w-4" />
-                Nueva consulta premium
-              </div>
-              <h1 className="max-w-3xl text-3xl font-semibold tracking-tight sm:text-4xl">
-                Un flujo de consulta con presencia, jerarquia y mejor lectura clinica.
-              </h1>
-              <p className="max-w-2xl text-sm leading-7 text-slate-300">
-                Reorganicé la experiencia para que se sienta mas cercana a una plataforma clinica
-                seria y menos a un formulario plano.
+    <div className="min-h-screen bg-gradient-to-br from-white via-violet-50 to-gray-100 p-6">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-6 rounded-[28px] bg-gradient-to-r from-[#1d1029] via-[#2e1742] to-[#4f2671] p-8 text-white shadow-2xl">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-violet-200">
+                Nueva consulta
+              </p>
+              <h1 className="mt-3 text-4xl font-semibold tracking-tight">Registro clinico</h1>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-violet-100">
+                Un formulario sobrio y coherente con el resto del sistema, organizado por etapas para
+                capturar la consulta con mas claridad.
               </p>
             </div>
 
-            <div className="rounded-[28px] border border-white/10 bg-white/5 p-5">
-              <div className="flex items-center justify-between text-sm text-slate-300">
-                <span>Progreso</span>
-                <span className="font-semibold text-white">{paso} / 4</span>
-              </div>
-              <div className="mt-3 h-2 rounded-full bg-white/10">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-cyan-300 via-sky-400 to-blue-500 transition-all duration-500"
-                  style={{ width: `${progreso}%` }}
-                />
-              </div>
-              <div className="mt-5 grid grid-cols-2 gap-3">
-                {resumen.map((item) => (
-                  <div key={item.k} className="rounded-2xl border border-white/10 bg-black/15 px-4 py-3">
-                    <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">{item.k}</p>
-                    <p className="mt-2 text-sm font-medium text-white">{item.v}</p>
-                  </div>
-                ))}
-              </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {resumen.map((item) => (
+                <div key={item.etiqueta} className="rounded-2xl border border-white/10 bg-white/10 px-4 py-4 backdrop-blur-sm">
+                  <p className="text-[11px] uppercase tracking-[0.2em] text-violet-200">{item.etiqueta}</p>
+                  <p className="mt-2 text-sm font-semibold text-white">{item.valor}</p>
+                </div>
+              ))}
             </div>
           </div>
-        </section>
+        </div>
 
-        <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-          <aside className="rounded-[30px] border border-slate-200 bg-white/85 p-4 shadow-[0_20px_60px_rgba(148,163,184,0.18)] backdrop-blur-xl">
-            <div className="mb-5 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-600">Ruta</p>
-                <h2 className="mt-1 text-xl font-semibold text-slate-900">Bitacora visual</h2>
-              </div>
-              <div className="rounded-2xl bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700">
-                {Math.round(progreso)}%
-              </div>
-            </div>
-
-            <div className="space-y-3">
+        <div className="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
+          <aside className="rounded-3xl bg-white p-4 shadow-lg">
+            <p className="px-2 text-xs font-semibold uppercase tracking-[0.22em] text-violet-500">
+              Etapas
+            </p>
+            <div className="mt-4 space-y-3">
               {pasos.map((item) => {
                 const Icono = item.icono;
                 const activo = item.numero === paso;
                 const completado = item.numero < paso;
-
                 return (
                   <button
                     key={item.numero}
                     type="button"
                     onClick={() => setPaso(item.numero)}
-                    className={`w-full rounded-[26px] border px-4 py-4 text-left transition ${
+                    className={`w-full rounded-2xl border px-4 py-4 text-left transition ${
                       activo
-                        ? "border-cyan-200 bg-gradient-to-br from-cyan-50 to-sky-100"
+                        ? "border-violet-200 bg-violet-50"
                         : completado
-                          ? "border-emerald-200 bg-emerald-50/70"
-                          : "border-slate-200 bg-white hover:bg-slate-50"
+                          ? "border-violet-100 bg-white"
+                          : "border-gray-200 bg-white hover:border-violet-100 hover:bg-violet-50/40"
                     }`}
                   >
                     <div className="flex items-start gap-3">
-                      <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${
-                        activo ? "bg-slate-950 text-cyan-200" : completado ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-500"
-                      }`}>
+                      <div
+                        className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+                          activo || completado ? "bg-violet-600 text-white" : "bg-gray-100 text-gray-500"
+                        }`}
+                      >
                         <Icono className="h-5 w-5" />
                       </div>
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">
                           Paso {item.numero}
                         </p>
-                        <h3 className="mt-1 text-base font-semibold text-slate-900">{item.titulo}</h3>
-                        <p className="mt-1 text-sm text-slate-500">{item.texto}</p>
+                        <h3 className="mt-1 text-base font-semibold text-gray-900">{item.titulo}</h3>
+                        <p className="mt-1 text-sm text-gray-500">{item.descripcion}</p>
                       </div>
                     </div>
                   </button>
@@ -276,228 +262,209 @@ export default function NuevaConsulta() {
             </div>
           </aside>
 
-          <main className="rounded-[34px] border border-slate-200 bg-white/90 shadow-[0_24px_80px_rgba(148,163,184,0.22)] backdrop-blur-xl">
-            <div className="border-b border-slate-200 px-6 py-6 sm:px-8">
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-600">
-                {pasoActual.titulo}
+          <main className="rounded-3xl bg-white shadow-lg">
+            <div className="border-b border-gray-100 px-8 py-7">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-500">
+                {pasos[paso - 1].titulo}
               </p>
-              <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">
-                {pasoActual.texto}
+              <h2 className="mt-2 text-3xl font-semibold text-gray-900">
+                {pasos[paso - 1].descripcion}
               </h2>
             </div>
 
-            <div className="px-6 py-6 sm:px-8">
+            <div className="space-y-6 px-8 py-8">
               {paso === 1 && (
-                <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
-                  <div className="rounded-[28px] border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-5">
-                    <div className="mb-5 flex items-center gap-3">
-                      <div className="rounded-2xl bg-slate-950 p-3 text-cyan-200">
-                        <UserCircleIcon className="h-6 w-6" />
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-semibold text-slate-900">Identidad primaria</h3>
-                        <p className="text-sm text-slate-500">Los datos que dominan el expediente.</p>
-                      </div>
-                    </div>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <Campo label="Tipo de paciente">
-                        <select name="tipo_paciente" value={form.tipo_paciente} onChange={handleChange} className={inputClass} disabled={!!paciente_id}>
-                          <option value="">Seleccione una categoria</option>
-                          <option value="Estudiante">Estudiante</option>
-                          <option value="Profesor">Profesor</option>
-                          <option value="Personal Administrativo">Personal Administrativo</option>
-                        </select>
-                      </Campo>
-                      <div className="rounded-2xl border border-dashed border-cyan-200 bg-cyan-50/70 px-4 py-4 text-sm leading-6 text-slate-600">
-                        El tipo del paciente define el bloque institucional de la siguiente etapa.
-                      </div>
-                      <Campo label="Nombre">
-                        <input name="nombre" value={form.nombre} onChange={handleChange} placeholder="Maria Fernanda" className={inputClass} disabled={!!paciente_id} />
-                      </Campo>
-                      <Campo label="Apellido">
-                        <input name="apellido" value={form.apellido} onChange={handleChange} placeholder="Salcedo" className={inputClass} disabled={!!paciente_id} />
-                      </Campo>
-                    </div>
-                  </div>
-
-                  <div className="rounded-[28px] border border-slate-200 bg-slate-950 p-5 text-white">
-                    <h3 className="text-xl font-semibold">Canales de contacto</h3>
-                    <p className="mt-2 text-sm leading-7 text-slate-300">Utiles para seguimiento y recomendaciones.</p>
-                    <div className="mt-5 space-y-4">
-                      <Campo label="Correo">
-                        <input name="email" value={form.email} onChange={handleChange} placeholder="correo@dominio.com" className={`${inputClass} border-white/10 bg-white/10 text-white placeholder:text-slate-300`} disabled={!!paciente_id} />
-                      </Campo>
-                      <Campo label="Telefono">
-                        <input name="telefono" value={form.telefono} onChange={handleChange} placeholder="+58..." className={`${inputClass} border-white/10 bg-white/10 text-white placeholder:text-slate-300`} disabled={!!paciente_id} />
-                      </Campo>
-                    </div>
+                <div className="grid gap-5 md:grid-cols-2">
+                  <Campo label="Tipo de paciente">
+                    <select
+                      name="tipo_paciente"
+                      value={form.tipo_paciente}
+                      onChange={handleChange}
+                      className={inputClass}
+                      disabled={!!paciente_id}
+                    >
+                      <option value="">Seleccione una categoria</option>
+                      <option value="Estudiante">Estudiante</option>
+                      <option value="Profesor">Profesor</option>
+                      <option value="Personal Administrativo">Personal Administrativo</option>
+                    </select>
+                  </Campo>
+                  <Campo label="Telefono">
+                    <input
+                      name="telefono"
+                      value={form.telefono}
+                      onChange={handleChange}
+                      placeholder="+58..."
+                      className={inputClass}
+                      disabled={!!paciente_id}
+                    />
+                  </Campo>
+                  <Campo label="Nombre">
+                    <input
+                      name="nombre"
+                      value={form.nombre}
+                      onChange={handleChange}
+                      placeholder="Nombre"
+                      className={inputClass}
+                      disabled={!!paciente_id}
+                    />
+                  </Campo>
+                  <Campo label="Apellido">
+                    <input
+                      name="apellido"
+                      value={form.apellido}
+                      onChange={handleChange}
+                      placeholder="Apellido"
+                      className={inputClass}
+                      disabled={!!paciente_id}
+                    />
+                  </Campo>
+                  <div className="md:col-span-2">
+                    <Campo label="Correo">
+                      <input
+                        name="email"
+                        value={form.email}
+                        onChange={handleChange}
+                        placeholder="correo@dominio.com"
+                        className={inputClass}
+                        disabled={!!paciente_id}
+                      />
+                    </Campo>
                   </div>
                 </div>
               )}
 
               {paso === 2 && (
-                <div className="rounded-[28px] border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-5">
-                  <h3 className="text-xl font-semibold text-slate-900">Perfil institucional</h3>
-                  <p className="mt-2 text-sm leading-7 text-slate-500">Campos dinamicos segun el tipo de paciente.</p>
-                  <div className="mt-5 grid gap-4 md:grid-cols-2">
-                    {form.tipo_paciente === "Estudiante" && (
-                      <>
-                        <Campo label="Carnet universitario">
-                          <input name="carnet_uni" value={form.carnet_uni} onChange={handleChange} placeholder="202401245" className={inputClass} disabled={!!paciente_id} />
-                        </Campo>
-                        <Campo label="Carrera">
-                          <input name="carrera" value={form.carrera} onChange={handleChange} placeholder="Enfermeria" className={inputClass} disabled={!!paciente_id} />
-                        </Campo>
-                        <Campo label="Semestre o ano">
-                          <input name="semestre_anio" value={form.semestre_anio} onChange={handleChange} placeholder="5to semestre" className={inputClass} />
-                        </Campo>
-                      </>
-                    )}
-                    {form.tipo_paciente === "Profesor" && (
-                      <>
-                        <Campo label="Codigo de empleado">
-                          <input name="codigo_empleado" value={form.codigo_empleado} onChange={handleChange} placeholder="PR-204" className={inputClass} disabled={!!paciente_id} />
-                        </Campo>
-                        <Campo label="Departamento">
-                          <input name="departamento" value={form.departamento} onChange={handleChange} placeholder="Coordinacion academica" className={inputClass} disabled={!!paciente_id} />
-                        </Campo>
-                        <Campo label="Categoria">
-                          <select name="categoria" value={form.categoria} onChange={handleChange} className={inputClass} disabled={!!paciente_id}>
-                            <option value="">Seleccione categoria</option>
-                            <option value="Auxiliar">Auxiliar</option>
-                            <option value="Asociado">Asociado</option>
-                            <option value="Titular">Titular</option>
-                          </select>
-                        </Campo>
-                      </>
-                    )}
-                    {form.tipo_paciente === "Personal Administrativo" && (
-                      <>
-                        <Campo label="Codigo de empleado">
-                          <input name="codigo_empleado" value={form.codigo_empleado} onChange={handleChange} placeholder="ADM-111" className={inputClass} disabled={!!paciente_id} />
-                        </Campo>
-                        <Campo label="Cargo">
-                          <input name="cargo" value={form.cargo} onChange={handleChange} placeholder="Analista" className={inputClass} disabled={!!paciente_id} />
-                        </Campo>
-                        <Campo label="Extension">
-                          <input name="extension" value={form.extension} onChange={handleChange} placeholder="220" className={inputClass} />
-                        </Campo>
-                      </>
-                    )}
-                    {!form.tipo_paciente && (
-                      <div className="col-span-full rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-8 text-center text-sm text-slate-500">
-                        Selecciona primero el tipo de paciente para desbloquear este bloque.
-                      </div>
-                    )}
-                  </div>
+                <div className="grid gap-5 md:grid-cols-2">
+                  {form.tipo_paciente === "Estudiante" && (
+                    <>
+                      <Campo label="Carnet universitario">
+                        <input name="carnet_uni" value={form.carnet_uni} onChange={handleChange} className={inputClass} disabled={!!paciente_id} />
+                      </Campo>
+                      <Campo label="Carrera">
+                        <input name="carrera" value={form.carrera} onChange={handleChange} className={inputClass} disabled={!!paciente_id} />
+                      </Campo>
+                      <Campo label="Semestre o ano">
+                        <input name="semestre_anio" value={form.semestre_anio} onChange={handleChange} className={inputClass} />
+                      </Campo>
+                    </>
+                  )}
+
+                  {form.tipo_paciente === "Profesor" && (
+                    <>
+                      <Campo label="Codigo de empleado">
+                        <input name="codigo_empleado" value={form.codigo_empleado} onChange={handleChange} className={inputClass} disabled={!!paciente_id} />
+                      </Campo>
+                      <Campo label="Departamento">
+                        <input name="departamento" value={form.departamento} onChange={handleChange} className={inputClass} disabled={!!paciente_id} />
+                      </Campo>
+                      <Campo label="Categoria">
+                        <select name="categoria" value={form.categoria} onChange={handleChange} className={inputClass} disabled={!!paciente_id}>
+                          <option value="">Seleccione categoria</option>
+                          <option value="Auxiliar">Auxiliar</option>
+                          <option value="Asociado">Asociado</option>
+                          <option value="Titular">Titular</option>
+                        </select>
+                      </Campo>
+                    </>
+                  )}
+
+                  {form.tipo_paciente === "Personal Administrativo" && (
+                    <>
+                      <Campo label="Codigo de empleado">
+                        <input name="codigo_empleado" value={form.codigo_empleado} onChange={handleChange} className={inputClass} disabled={!!paciente_id} />
+                      </Campo>
+                      <Campo label="Cargo">
+                        <input name="cargo" value={form.cargo} onChange={handleChange} className={inputClass} disabled={!!paciente_id} />
+                      </Campo>
+                      <Campo label="Extension">
+                        <input name="extension" value={form.extension} onChange={handleChange} className={inputClass} />
+                      </Campo>
+                    </>
+                  )}
+
+                  {!form.tipo_paciente && (
+                    <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-6 py-10 text-center text-sm text-gray-500 md:col-span-2">
+                      Selecciona primero el tipo de paciente para completar este bloque.
+                    </div>
+                  )}
                 </div>
               )}
 
               {paso === 3 && (
-                <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
-                  <div className="rounded-[28px] border border-slate-200 bg-white p-5">
-                    <h3 className="text-xl font-semibold text-slate-900">Narrativa clinica</h3>
-                    <div className="mt-5 space-y-4">
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <Campo label="Antecedentes relevantes">
-                          <input name="antecedentes" value={form.antecedentes} onChange={handleChange} placeholder="Hipertension, asma..." className={inputClass} />
-                        </Campo>
-                        <Campo label="Alergias">
-                          <input name="alergias" value={form.alergias} onChange={handleChange} placeholder="Penicilina, latex..." className={inputClass} />
-                        </Campo>
-                        <Campo label="Temperatura">
-                          <input name="temperatura" value={form.temperatura} onChange={handleChange} placeholder="37.2 C" className={inputClass} />
-                        </Campo>
-                        <Campo label="Tension arterial">
-                          <input name="tension_arterial" value={form.tension_arterial} onChange={handleChange} placeholder="120/80" className={inputClass} />
-                        </Campo>
-                        <Campo label="Frecuencia cardiaca">
-                          <input name="frecuencia_cardiaca" value={form.frecuencia_cardiaca} onChange={handleChange} placeholder="78 lpm" className={inputClass} />
-                        </Campo>
-                      </div>
-                      <Campo label="Motivo de la consulta">
-                        <textarea name="motivo" value={form.motivo} onChange={handleChange} placeholder="Describe la razon principal del ingreso." className={`${inputClass} min-h-[140px] resize-none`} />
-                      </Campo>
-                      <Campo label="Sintomas observados">
-                        <textarea name="sintomas" value={form.sintomas} onChange={handleChange} placeholder="Sintomas, signos o evolucion." className={`${inputClass} min-h-[190px] resize-none`} />
-                      </Campo>
-                    </div>
+                <div className="space-y-5">
+                  <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                    <Campo label="Antecedentes">
+                      <input name="antecedentes" value={form.antecedentes} onChange={handleChange} className={inputClass} />
+                    </Campo>
+                    <Campo label="Alergias">
+                      <input name="alergias" value={form.alergias} onChange={handleChange} className={inputClass} />
+                    </Campo>
+                    <Campo label="Temperatura">
+                      <input name="temperatura" value={form.temperatura} onChange={handleChange} className={inputClass} />
+                    </Campo>
+                    <Campo label="Tension arterial">
+                      <input name="tension_arterial" value={form.tension_arterial} onChange={handleChange} className={inputClass} />
+                    </Campo>
+                    <Campo label="Frecuencia cardiaca">
+                      <input name="frecuencia_cardiaca" value={form.frecuencia_cardiaca} onChange={handleChange} className={inputClass} />
+                    </Campo>
+                    <Campo label="Prioridad">
+                      <select name="prioridad" value={form.prioridad} onChange={handleChange} className={inputClass}>
+                        <option value="Normal">Normal</option>
+                        <option value="Urgente">Urgente</option>
+                      </select>
+                    </Campo>
                   </div>
-                  <div className="space-y-5">
-                    <div className="rounded-[28px] border border-slate-200 bg-slate-950 p-5 text-white">
-                      <h3 className="text-xl font-semibold">Prioridad</h3>
-                      <div className="mt-5 grid gap-3">
-                        {["Normal", "Urgente"].map((nivel) => (
-                          <button
-                            key={nivel}
-                            type="button"
-                            onClick={() => setForm((prev) => ({ ...prev, prioridad: nivel as "Normal" | "Urgente" }))}
-                            className={`rounded-2xl border px-4 py-4 text-left ${
-                              form.prioridad === nivel ? "border-cyan-300 bg-cyan-400/15" : "border-white/10 bg-white/5"
-                            }`}
-                          >
-                            <p className="text-sm font-semibold uppercase tracking-[0.18em]">{nivel}</p>
-                            <p className="mt-1 text-sm text-slate-300">
-                              {nivel === "Urgente" ? "Atencion prioritaria." : "Flujo ordinario."}
-                            </p>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="rounded-[28px] border border-cyan-100 bg-cyan-50/70 p-5 text-sm leading-7 text-slate-600">
-                      Escribe primero el motivo con lenguaje claro y deja los sintomas para el detalle
-                      clinico.
-                    </div>
-                  </div>
+                  <Campo label="Motivo de la consulta">
+                    <textarea name="motivo" value={form.motivo} onChange={handleChange} className={`${inputClass} min-h-[140px] resize-none`} />
+                  </Campo>
+                  <Campo label="Sintomas observados">
+                    <textarea name="sintomas" value={form.sintomas} onChange={handleChange} className={`${inputClass} min-h-[180px] resize-none`} />
+                  </Campo>
                 </div>
               )}
 
               {paso === 4 && (
-                <div className="grid gap-5 xl:grid-cols-2">
-                  <div className="rounded-[28px] border border-slate-200 bg-white p-5">
-                    <h3 className="text-xl font-semibold text-slate-900">Diagnostico</h3>
-                    <div className="mt-5">
-                      <Campo label="Impresion diagnostica">
-                        <textarea name="diagnostico" value={form.diagnostico} onChange={handleChange} placeholder="Hallazgos y juicio clinico." className={`${inputClass} min-h-[220px] resize-none`} />
-                      </Campo>
-                    </div>
-                  </div>
-                  <div className="rounded-[28px] border border-slate-200 bg-gradient-to-br from-slate-950 to-slate-900 p-5 text-white">
-                    <h3 className="text-xl font-semibold">Plan de cuidado</h3>
-                    <div className="mt-5">
-                      <Campo label="Notas y recomendaciones">
-                        <textarea name="notas_recom" value={form.notas_recom} onChange={handleChange} placeholder="Reposo, control, remision, vigilancia..." className={`${inputClass} min-h-[220px] resize-none border-white/10 bg-white/10 text-white placeholder:text-slate-300`} />
-                      </Campo>
-                      <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm leading-7 text-slate-300">
-                        Los antecedentes, alergias y signos vitales se anexaran al resumen clinico de la consulta.
-                      </div>
-                    </div>
-                  </div>
+                <div className="grid gap-5 lg:grid-cols-2">
+                  <Campo label="Diagnostico">
+                    <textarea name="diagnostico" value={form.diagnostico} onChange={handleChange} className={`${inputClass} min-h-[220px] resize-none`} />
+                  </Campo>
+                  <Campo label="Notas y recomendaciones">
+                    <textarea name="notas_recom" value={form.notas_recom} onChange={handleChange} className={`${inputClass} min-h-[220px] resize-none`} />
+                  </Campo>
                 </div>
               )}
             </div>
 
-            <div className="border-t border-slate-200 px-6 py-5 sm:px-8">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex flex-wrap gap-3">
-                  <button type="button" onClick={() => nav("/dashboard")} className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700">
-                    <ArrowLongLeftIcon className="h-5 w-5" />
-                    Volver al inicio
-                  </button>
-                  <button type="button" onClick={anterior} disabled={paso === 1} className="rounded-full bg-slate-100 px-5 py-3 text-sm font-semibold text-slate-700 disabled:opacity-40">
-                    Paso anterior
-                  </button>
-                </div>
-
+            <div className="flex flex-col gap-4 border-t border-gray-100 px-8 py-6 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-wrap gap-3">
                 <button
                   type="button"
-                  onClick={paso === 4 ? enviar : siguiente}
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-slate-950 via-cyan-700 to-blue-600 px-7 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(8,47,73,0.26)]"
+                  onClick={() => nav("/dashboard")}
+                  className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700"
                 >
-                  {paso === 4 ? "Registrar consulta" : "Continuar"}
-                  <ArrowLongRightIcon className="h-5 w-5" />
+                  <ArrowLongLeftIcon className="h-5 w-5" />
+                  Volver al inicio
+                </button>
+                <button
+                  type="button"
+                  onClick={anterior}
+                  disabled={paso === 1}
+                  className="rounded-full bg-gray-100 px-5 py-3 text-sm font-semibold text-gray-700 disabled:opacity-40"
+                >
+                  Paso anterior
                 </button>
               </div>
+
+              <button
+                type="button"
+                onClick={paso === 4 ? enviar : siguiente}
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-violet-700 via-purple-700 to-black px-7 py-3 text-sm font-semibold text-white shadow-lg"
+              >
+                {paso === 4 ? "Registrar consulta" : "Continuar"}
+                <ArrowLongRightIcon className="h-5 w-5" />
+              </button>
             </div>
           </main>
         </div>
