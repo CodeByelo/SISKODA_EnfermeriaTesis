@@ -6,6 +6,7 @@ import consultasHoyRouter from "./consultas-hoy";
 import expedientesRouter from './expedientes';
 import inventarioRouter from './inventario';
 import reportesRouter from './reportes';
+import portalRouter from './portal';
 import 'dotenv/config';
 import authRouter from './authRouter';
 import { requireAuth, requireRole } from './auth';
@@ -13,6 +14,9 @@ import usersRouter from './users';
 
 const app = express();
 const PORT = process.env.PORT || 4001;
+const internalRoles = ['admin', 'enfermeria', 'consulta', 'inventario', 'reportes'];
+const inventoryRoles = ['admin', 'enfermeria', 'inventario'];
+const reportsRoles = ['admin', 'enfermeria', 'reportes'];
 const normalizeOrigin = (value?: string) => value?.trim().replace(/\/$/, '');
 const envOrigins = (process.env.FRONTEND_URL ?? '')
   .split(',')
@@ -57,11 +61,12 @@ app.use((req, res, next) => {
 
 app.use('/api/auth', authRouter);
 app.use('/api/users', requireAuth, requireRole('admin'), usersRouter);
-app.use('/api/consultas', requireAuth, consultasRouter);
-app.use("/api/consultas-hoy", requireAuth, consultasHoyRouter);
-app.use("/api/expedientes", requireAuth, expedientesRouter);
-app.use("/api/inventario", requireAuth, inventarioRouter);
-app.use('/api/reportes', requireAuth, reportesRouter);
+app.use('/api/consultas', requireAuth, requireRole(...internalRoles), consultasRouter);
+app.use("/api/consultas-hoy", requireAuth, requireRole(...internalRoles), consultasHoyRouter);
+app.use("/api/expedientes", requireAuth, requireRole(...internalRoles), expedientesRouter);
+app.use("/api/inventario", requireAuth, requireRole(...inventoryRoles), inventarioRouter);
+app.use('/api/reportes', requireAuth, requireRole(...reportsRoles), reportesRouter);
+app.use('/api/portal', requireAuth, portalRouter);
 
 app.listen(PORT, () => {
   console.log(`Backend activo en puerto ${PORT}`);

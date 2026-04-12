@@ -4,6 +4,11 @@ export interface AuthUser {
   id: number;
   email: string;
   role: string;
+  personaId?: number | null;
+  nombres?: string | null;
+  apellidos?: string | null;
+  tipo_miembro?: string | null;
+  correo_institucional?: string | null;
 }
 
 export const TOKEN_KEY = "token";

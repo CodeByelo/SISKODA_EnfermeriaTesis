@@ -20,6 +20,7 @@ type MenuItem = {
   route: string;
   icon: ComponentType<SVGProps<SVGSVGElement>>;
   adminOnly?: boolean;
+  roles?: string[];
 };
 
 const menu: MenuItem[] = [
@@ -29,6 +30,8 @@ const menu: MenuItem[] = [
   { name: "Inventario", route: "/inventario", icon: CubeIcon },
   { name: "Reportes", route: "/reportes", icon: ChartBarIcon },
   { name: "Usuarios", route: "/usuarios", icon: ShieldCheckIcon, adminOnly: true },
+  { name: "Mi Perfil", route: "/mi-perfil", icon: FolderOpenIcon, roles: ["estudiante", "profesor", "personal"] },
+  { name: "Mi Historial", route: "/mi-historial", icon: CalendarDaysIcon, roles: ["estudiante", "profesor", "personal"] },
   { name: "Salir", route: "/", icon: ArrowRightOnRectangleIcon },
 ];
 
@@ -39,6 +42,8 @@ const descriptions: Record<string, string> = {
   Inventario: "Controla insumos, entradas, salidas y existencias del area.",
   Reportes: "Consulta metricas, tendencias y resumenes para la toma de decisiones.",
   Usuarios: "Administra cuentas internas, accesos y roles del sistema.",
+  "Mi Perfil": "Consulta tus datos institucionales y el estado de tu cuenta personal.",
+  "Mi Historial": "Revisa tu historial personal de atenciones y seguimiento.",
   Salir: "Cierra la sesion actual de forma segura.",
 };
 
@@ -54,7 +59,14 @@ export default function Home() {
   const nav = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { logout, user } = useAuth();
-  const visibleMenu = menu.filter((item) => !item.adminOnly || user?.role === "admin");
+  const visibleMenu = menu.filter((item) => {
+    if (item.adminOnly && user?.role !== "admin") return false;
+    if (item.roles && !item.roles.includes(user?.role ?? "")) return false;
+    if (!item.roles && ["estudiante", "profesor", "personal"].includes(user?.role ?? "") && !["Salir"].includes(item.name)) {
+      return ["Mi Perfil", "Mi Historial"].includes(item.name);
+    }
+    return true;
+  });
 
   const openMenuItem = (item: MenuItem) => {
     if (item.name === "Salir") {

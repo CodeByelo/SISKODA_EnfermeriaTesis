@@ -15,6 +15,9 @@ const roleOptions = [
   { value: "consulta", label: "Consulta" },
   { value: "inventario", label: "Inventario" },
   { value: "reportes", label: "Reportes" },
+  { value: "estudiante", label: "Estudiante" },
+  { value: "profesor", label: "Profesor" },
+  { value: "personal", label: "Personal" },
 ];
 
 const roleTone: Record<string, string> = {
@@ -23,6 +26,9 @@ const roleTone: Record<string, string> = {
   consulta: "bg-indigo-100 text-indigo-700 ring-indigo-200",
   inventario: "bg-slate-100 text-slate-700 ring-slate-200",
   reportes: "bg-stone-100 text-stone-700 ring-stone-200",
+  estudiante: "bg-sky-100 text-sky-700 ring-sky-200",
+  profesor: "bg-amber-100 text-amber-700 ring-amber-200",
+  personal: "bg-emerald-100 text-emerald-700 ring-emerald-200",
 };
 
 export default function Usuarios() {

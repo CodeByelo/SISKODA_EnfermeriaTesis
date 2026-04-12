@@ -4,12 +4,24 @@ import type { AuthRequest } from './auth';
 
 const router = Router();
 
-const allowedRoles = ['admin', 'enfermeria', 'consulta', 'inventario', 'reportes'];
+const allowedRoles = ['admin', 'enfermeria', 'consulta', 'inventario', 'reportes', 'estudiante', 'profesor', 'personal'];
 
 router.get('/', async (_req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, email, role FROM users ORDER BY email ASC'
+      `
+        SELECT
+          u.id,
+          u.email,
+          u.role,
+          u.estado_cuenta,
+          p.nombres,
+          p.apellidos,
+          p.tipo_miembro
+        FROM users u
+        LEFT JOIN personas p ON p.id = u.persona_id
+        ORDER BY u.email ASC
+      `
     );
     res.json(result.rows);
   } catch (error) {

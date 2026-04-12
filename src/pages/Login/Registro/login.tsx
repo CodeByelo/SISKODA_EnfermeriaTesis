@@ -139,6 +139,13 @@ export default function Login() {
               >
                 {isLoading ? 'Validando...' : 'ACCEDER'}
               </button>
+              <button
+                type="button"
+                onClick={() => navigate('/registro-portal')}
+                className="w-full rounded-lg border border-white/15 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+              >
+                Crear cuenta institucional
+              </button>
             </form>
           </div>
           <div className="px-8 py-4 bg-gray-900/50 text-center text-gray-300 text-sm">

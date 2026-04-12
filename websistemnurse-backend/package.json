@@ -4,6 +4,7 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "dotenvx run -- ts-node src/server.ts",
+    "migrate": "dotenvx run -- ts-node src/migrate.ts",
     "build": "tsc",
     "start": "node dist/server.js"
   },

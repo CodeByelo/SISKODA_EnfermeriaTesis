@@ -14,8 +14,14 @@ const NuevoInsumo = lazy(() => import("./pages/inventario/nuevo"));
 const HistorialPaciente = lazy(() => import("./pages/expedientes/historial"));
 const Reportes = lazy(() => import("./pages/reportes"));
 const Usuarios = lazy(() => import("./pages/usuarios"));
+const MiPerfil = lazy(() => import("./pages/portal/mi-perfil"));
+const MiHistorial = lazy(() => import("./pages/portal/mi-historial"));
 const Login = lazy(() => import("./pages/Login/Registro/login"));
 const Register = lazy(() => import("./pages/Login/Registro/registro"));
+const RegistroPortal = lazy(() => import("./pages/Login/Registro/registro-portal"));
+
+const internalRoles = ["admin", "enfermeria", "consulta", "inventario", "reportes"];
+const portalRoles = ["estudiante", "profesor", "personal"];
 
 function ProtectedRoutes() {
   const { isAuthenticated, user, token } = useAuth();
@@ -41,6 +47,16 @@ function RoleProtectedRoutes({ allowedRoles }: { allowedRoles: string[] }) {
   return <Outlet />;
 }
 
+function DashboardRedirect() {
+  const { user } = useAuth();
+
+  if (["estudiante", "profesor", "personal"].includes(user?.role ?? "")) {
+    return <Navigate to="/mi-perfil" replace />;
+  }
+
+  return <Home />;
+}
+
 function AppFallback() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-600">
@@ -57,10 +73,14 @@ export default function App() {
           <Route element={<PublicRoutes />}>
             <Route path="/" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/registro-portal" element={<RegistroPortal />} />
           </Route>
 
           <Route element={<ProtectedRoutes />}>
-            <Route path="/dashboard" element={<Home />} />
+            <Route path="/dashboard" element={<DashboardRedirect />} />
+          </Route>
+
+          <Route element={<RoleProtectedRoutes allowedRoles={internalRoles} />}>
             <Route path="/nueva-consulta" element={<NuevaConsulta />} />
             <Route path="/nueva-consulta/:paciente_id" element={<NuevaConsulta />} />
             <Route path="/consultas-hoy" element={<ConsultasHoy />} />
@@ -76,6 +96,11 @@ export default function App() {
 
           <Route element={<RoleProtectedRoutes allowedRoles={["admin"]} />}>
             <Route path="/usuarios" element={<Usuarios />} />
+          </Route>
+
+          <Route element={<RoleProtectedRoutes allowedRoles={portalRoles} />}>
+            <Route path="/mi-perfil" element={<MiPerfil />} />
+            <Route path="/mi-historial" element={<MiHistorial />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
