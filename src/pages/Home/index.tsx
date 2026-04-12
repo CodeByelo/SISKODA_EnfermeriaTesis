@@ -1,3 +1,4 @@
+import type { ComponentType, SVGProps } from "react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardButtons from "../../components/DashboardButtons";
@@ -10,29 +11,66 @@ import {
   ArrowRightOnRectangleIcon,
   Bars3Icon,
   XMarkIcon,
+  ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../../contexts/auth-context";
 
-const menu = [
+type MenuItem = {
+  name: string;
+  route: string;
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
+  adminOnly?: boolean;
+};
+
+const menu: MenuItem[] = [
   { name: "Nueva Consulta", route: "/nueva-consulta", icon: ClipboardDocumentCheckIcon },
   { name: "Consultas de Hoy", route: "/consultas-hoy", icon: CalendarDaysIcon },
   { name: "Expedientes", route: "/expedientes", icon: FolderOpenIcon },
   { name: "Inventario", route: "/inventario", icon: CubeIcon },
   { name: "Reportes", route: "/reportes", icon: ChartBarIcon },
+  { name: "Usuarios", route: "/usuarios", icon: ShieldCheckIcon, adminOnly: true },
   { name: "Salir", route: "/", icon: ArrowRightOnRectangleIcon },
 ];
+
+const descriptions: Record<string, string> = {
+  "Nueva Consulta": "Registra atenciones clínicas con orden, seguimiento y mejor lectura operativa.",
+  "Consultas de Hoy": "Supervisa la jornada activa y entra rápido a la atención pendiente.",
+  Expedientes: "Gestiona pacientes, historial médico y continuidad clínica.",
+  Inventario: "Controla insumos, entradas, salidas y existencias del área.",
+  Reportes: "Consulta métricas, tendencias y resúmenes para la toma de decisiones.",
+  Usuarios: "Administra cuentas internas, accesos y roles del sistema.",
+  Salir: "Cierra la sesión actual de forma segura.",
+};
+
+const roleLabel: Record<string, string> = {
+  admin: "Administrador",
+  enfermeria: "Enfermería",
+  consulta: "Consulta",
+  inventario: "Inventario",
+  reportes: "Reportes",
+};
 
 export default function Home() {
   const nav = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { logout, user } = useAuth();
+  const visibleMenu = menu.filter((item) => !item.adminOnly || user?.role === "admin");
+
+  const openMenuItem = (item: MenuItem) => {
+    if (item.name === "Salir") {
+      logout();
+    }
+
+    nav(item.route);
+    setSidebarOpen(false);
+  };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-[radial-gradient(circle_at_top,_rgba(109,40,217,0.08),_transparent_35%),linear-gradient(180deg,#f7f7fb_0%,#f3f4f6_100%)]">
       <aside
         className={`${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0`}
+        } fixed inset-y-0 left-0 z-50 w-64 border-r border-violet-100 bg-white/95 shadow-lg backdrop-blur-sm transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0`}
       >
         <div className="flex items-center justify-between border-b p-4">
           <div>
@@ -49,16 +87,10 @@ export default function Home() {
         </div>
 
         <nav className="space-y-2 p-4">
-          {menu.map((item) => (
+          {visibleMenu.map((item) => (
             <button
               key={item.name}
-              onClick={() => {
-                if (item.name === "Salir") {
-                  logout();
-                }
-                nav(item.route);
-                setSidebarOpen(false);
-              }}
+              onClick={() => openMenuItem(item)}
               className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition hover:bg-indigo-50 hover:text-indigo-600"
             >
               <item.icon className="h-5 w-5" />
@@ -86,29 +118,65 @@ export default function Home() {
           </button>
           <div className="flex-1 px-4">
             <h2 className="text-2xl font-semibold text-gray-800">Dashboard</h2>
-            <p className="text-sm text-gray-500">Acceso rápido a módulos y reportes.</p>
+            <p className="text-sm text-gray-500">Acceso rápido a módulos, reportes y control operativo.</p>
           </div>
-          <span className="text-sm text-gray-500">{user?.role ?? "Enfermeria"}</span>
+          <span className="rounded-full bg-violet-50 px-3 py-1 text-sm font-medium text-violet-700 ring-1 ring-violet-200">
+            {roleLabel[user?.role ?? "enfermeria"] ?? "Enfermería"}
+          </span>
         </header>
 
         <section className="p-6">
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {menu.map((card) => (
+          <div className="mb-8 overflow-hidden rounded-[28px] border border-violet-100 bg-white shadow-[0_24px_60px_-40px_rgba(76,29,149,0.35)]">
+            <div className="flex flex-col gap-6 bg-gradient-to-r from-[#23102f] via-[#34164c] to-[#4c1d72] px-8 py-8 text-white lg:flex-row lg:items-center lg:justify-between">
+              <div className="max-w-2xl">
+                <p className="text-xs font-semibold uppercase tracking-[0.35em] text-violet-200">
+                  Panel principal
+                </p>
+                <h3 className="mt-3 text-3xl font-semibold">Centro de trabajo clínico</h3>
+                <p className="mt-3 text-sm leading-6 text-violet-100">
+                  Administra consultas, expedientes, inventario y reportes desde una vista coherente. Si eres administrador, también podrás gestionar usuarios y permisos.
+                </p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-white/10 bg-white/10 px-5 py-4">
+                  <p className="text-xs uppercase tracking-[0.25em] text-violet-200">Módulos</p>
+                  <p className="mt-2 text-3xl font-semibold">{visibleMenu.filter((item) => item.name !== "Salir").length}</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/10 px-5 py-4">
+                  <p className="text-xs uppercase tracking-[0.25em] text-violet-200">Perfil</p>
+                  <p className="mt-2 text-xl font-semibold">{roleLabel[user?.role ?? "enfermeria"] ?? "Enfermería"}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            {visibleMenu.map((card) => (
               <button
                 key={card.name}
-                onClick={() => {
-                  if (card.name === "Salir") {
-                    logout();
-                  }
-                  nav(card.route);
-                }}
-                className="rounded-xl bg-white p-6 text-left shadow transition hover:scale-[1.01] hover:shadow-lg"
+                onClick={() => openMenuItem(card)}
+                className="group relative overflow-hidden rounded-[26px] border border-violet-100 bg-[linear-gradient(180deg,#ffffff_0%,#faf7ff_100%)] p-6 text-left shadow-[0_24px_45px_-38px_rgba(76,29,149,0.45)] transition duration-200 hover:-translate-y-1 hover:border-violet-200 hover:shadow-[0_30px_60px_-34px_rgba(76,29,149,0.35)]"
               >
-                <card.icon className="mb-4 h-10 w-10 text-indigo-600" />
-                <h3 className="text-lg font-semibold text-gray-800">{card.name}</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Accede al módulo de {card.name.toLowerCase()}
-                </p>
+                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-violet-700 via-fuchsia-500 to-violet-400 opacity-80" />
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-100 text-violet-700 transition group-hover:bg-violet-700 group-hover:text-white">
+                    <card.icon className="h-8 w-8" />
+                  </div>
+                  <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-violet-500 ring-1 ring-violet-100">
+                    {card.name === "Salir" ? "Acción" : "Módulo"}
+                  </span>
+                </div>
+                <h3 className="mt-8 text-xl font-semibold text-gray-900">{card.name}</h3>
+                <p className="mt-3 text-sm leading-6 text-gray-600">{descriptions[card.name]}</p>
+                <div className="mt-6 flex items-center justify-between border-t border-violet-100 pt-4 text-sm">
+                  <span className="font-medium text-gray-500">
+                    {card.name === "Salir" ? "Finaliza tu sesión actual" : "Abrir módulo"}
+                  </span>
+                  <span className="font-semibold text-violet-700 transition group-hover:translate-x-1">
+                    Entrar
+                  </span>
+                </div>
               </button>
             ))}
           </div>

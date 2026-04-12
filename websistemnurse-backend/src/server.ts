@@ -8,7 +8,8 @@ import inventarioRouter from './inventario';
 import reportesRouter from './reportes';
 import 'dotenv/config';
 import authRouter from './authRouter';
-import { requireAuth } from './auth';
+import { requireAuth, requireRole } from './auth';
+import usersRouter from './users';
 
 const app = express();
 const PORT = process.env.PORT || 4001;
@@ -55,6 +56,7 @@ app.use((req, res, next) => {
 });
 
 app.use('/api/auth', authRouter);
+app.use('/api/users', requireAuth, requireRole('admin'), usersRouter);
 app.use('/api/consultas', requireAuth, consultasRouter);
 app.use("/api/consultas-hoy", requireAuth, consultasHoyRouter);
 app.use("/api/expedientes", requireAuth, expedientesRouter);

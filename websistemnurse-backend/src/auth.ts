@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import pool from './db';
 
-type AuthRequest = Request & {
+export type AuthRequest = Request & {
   user?: {
     id: number;
     email: string;
@@ -96,4 +96,18 @@ export const requireAuth = (req: AuthRequest, res: Response, next: NextFunction)
     console.error('Error validando token:', err);
     return res.status(401).json({ error: 'Token invalido o vencido' });
   }
+};
+
+export const requireRole = (...allowedRoles: string[]) => {
+  return (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Usuario no autenticado' });
+    }
+
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({ error: 'No tienes permisos para realizar esta accion' });
+    }
+
+    next();
+  };
 };

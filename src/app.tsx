@@ -13,6 +13,7 @@ const SalidaInventario = lazy(() => import("./pages/inventario/salida"));
 const NuevoInsumo = lazy(() => import("./pages/inventario/nuevo"));
 const HistorialPaciente = lazy(() => import("./pages/expedientes/historial"));
 const Reportes = lazy(() => import("./pages/reportes"));
+const Usuarios = lazy(() => import("./pages/usuarios"));
 const Login = lazy(() => import("./pages/Login/Registro/login"));
 const Register = lazy(() => import("./pages/Login/Registro/registro"));
 
@@ -57,6 +58,7 @@ export default function App() {
             <Route path="/inventario/salida" element={<SalidaInventario />} />
             <Route path="/inventario/nuevo" element={<NuevoInsumo />} />
             <Route path="/reportes" element={<Reportes />} />
+            <Route path="/usuarios" element={<Usuarios />} />
           </Route>
         </Routes>
       </Suspense>
