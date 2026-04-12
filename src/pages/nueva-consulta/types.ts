@@ -21,6 +21,11 @@ export interface ConsultaForm {
   motivo: string;
   sintomas: string;
   prioridad: 'Normal' | 'Urgente';
+  antecedentes: string;
+  alergias: string;
+  temperatura: string;
+  tension_arterial: string;
+  frecuencia_cardiaca: string;
 
   // Tratamiento
   diagnostico: string;

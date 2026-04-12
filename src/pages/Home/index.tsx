@@ -25,7 +25,11 @@ const menu = [
 export default function Home() {
   const nav = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const { logout, user } = useAuth();
+  const filteredMenu = menu.filter((item) =>
+    item.name.toLowerCase().includes(query.toLowerCase())
+  );
 
   return (
     <div className="flex h-screen bg-gray-50 relative">
@@ -83,13 +87,33 @@ export default function Home() {
           >
             <Bars3Icon className="w-6 h-6 text-gray-600" />
           </button>
-          <h2 className="text-2xl font-semibold text-gray-800">Dashboard</h2>
+          <div className="flex-1 px-4">
+            <h2 className="text-2xl font-semibold text-gray-800">Dashboard</h2>
+            <p className="text-sm text-gray-500">Acceso rapido a modulos, reportes y acciones frecuentes.</p>
+          </div>
           <span className="text-sm text-gray-500">{user?.role ?? "Enfermeria"}</span>
         </header>
 
         <section className="p-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {menu.map((card) => (
+          <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+              Busqueda global
+            </label>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar modulo, por ejemplo inventario o reportes"
+              className="mt-3 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100"
+            />
+          </div>
+
+          {filteredMenu.length === 0 ? (
+            <div className="rounded-3xl border border-dashed border-slate-300 bg-white/70 px-6 py-10 text-center text-slate-500">
+              No hay modulos que coincidan con la busqueda.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredMenu.map((card) => (
               <button
                 key={card.name}
                 onClick={() => {
@@ -107,7 +131,8 @@ export default function Home() {
                 </p>
               </button>
             ))}
-          </div>
+            </div>
+          )}
         </section>
       </main>
 

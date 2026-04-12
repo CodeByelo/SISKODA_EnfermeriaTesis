@@ -15,6 +15,7 @@ import {
 import { Bar, Pie, Line } from 'react-chartjs-2';
 import { API_URL } from '../../config/api';
 import { authFetch, buildAuthHeaders } from '../../lib/auth';
+import { useNotifications } from '../../contexts/notification-context';
 
 type PrioridadItem = {
   prioridad: string;
@@ -45,6 +46,7 @@ ChartJS.register(
 
 export default function Reportes() {
   const nav = useNavigate();
+  const { notify } = useNotifications();
   const [prioridadData, setPrioridadData] = useState<PrioridadItem[]>([]);
   const [tendenciaData, setTendenciaData] = useState<TendenciaItem[]>([]);
   const [stockData, setStockData] = useState<StockItem[]>([]);
@@ -113,7 +115,7 @@ export default function Reportes() {
       });
 
       if (!response.ok) {
-        alert('No se pudo exportar el reporte');
+        notify({ tone: 'error', title: 'No se pudo exportar el reporte' });
         return;
       }
 
@@ -126,7 +128,7 @@ export default function Reportes() {
       window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error(err);
-      alert('No se pudo exportar el reporte');
+      notify({ tone: 'error', title: 'No se pudo exportar el reporte' });
     }
   };
 

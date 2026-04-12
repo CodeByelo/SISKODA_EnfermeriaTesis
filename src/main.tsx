@@ -4,11 +4,14 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './app.tsx'
 import { AuthProvider } from './contexts/auth-context.tsx'
+import { NotificationProvider } from './contexts/notification-context.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AuthProvider>
-      <App />
+      <NotificationProvider>
+        <App />
+      </NotificationProvider>
     </AuthProvider>
   </StrictMode>,
 )

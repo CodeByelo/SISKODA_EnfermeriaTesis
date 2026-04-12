@@ -1,10 +1,11 @@
-// src/pages/inventario/nuevo.tsx
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authFetch } from '../../lib/auth';
+import { useNotifications } from '../../contexts/notification-context';
 
 export default function NuevoInsumo() {
   const nav = useNavigate();
+  const { notify } = useNotifications();
   const [form, setForm] = useState({
     nombre: '',
     descripcion: '',
@@ -23,7 +24,7 @@ export default function NuevoInsumo() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.nombre.trim()) {
-      alert('⚠️ El nombre del insumo es obligatorio');
+      notify({ tone: 'info', title: 'El nombre del insumo es obligatorio' });
       return;
     }
 
@@ -43,15 +44,15 @@ export default function NuevoInsumo() {
       });
 
       if (res.ok) {
-        alert('✅ Insumo creado exitosamente');
+        notify({ tone: 'success', title: 'Insumo creado exitosamente' });
         nav('/inventario');
       } else {
         const err = await res.json();
-        alert(`❌ Error: ${err.error || 'No se pudo crear el insumo'}`);
+        notify({ tone: 'error', title: 'No se pudo crear el insumo', message: err.error || 'Revisa los datos ingresados.' });
       }
     } catch (err) {
       console.error(err);
-      alert('❌ Error de conexión al crear el insumo');
+      notify({ tone: 'error', title: 'Error de conexion al crear el insumo' });
     }
   };
 
@@ -74,7 +75,7 @@ export default function NuevoInsumo() {
           </div>
 
           <div className="mb-4">
-            <label className="block mb-2 font-medium">Descripción (opcional)</label>
+            <label className="block mb-2 font-medium">Descripcion (opcional)</label>
             <textarea
               name="descripcion"
               value={form.descripcion}
@@ -85,7 +86,7 @@ export default function NuevoInsumo() {
           </div>
 
           <div className="mb-4">
-            <label className="block mb-2 font-medium">Categoría (opcional)</label>
+            <label className="block mb-2 font-medium">Categoria (opcional)</label>
             <input
               name="categoria"
               value={form.categoria}
@@ -97,7 +98,7 @@ export default function NuevoInsumo() {
 
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="block mb-2 font-medium">Stock mínimo</label>
+              <label className="block mb-2 font-medium">Stock minimo</label>
               <input
                 name="stock_minimo"
                 type="number"

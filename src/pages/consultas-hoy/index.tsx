@@ -80,7 +80,14 @@ export default function ConsultasHoy() {
         />
 
         {filtered.length === 0 ? (
-          <p className="text-gray-600">No hay consultas registradas hoy.</p>
+          <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
+            <p className="text-lg font-semibold text-slate-700">Sin consultas visibles</p>
+            <p className="mt-2 text-sm text-slate-500">
+              {filter
+                ? "No hay coincidencias con el filtro aplicado."
+                : "Todavia no hay consultas registradas para hoy."}
+            </p>
+          </div>
         ) : (
           <div className="overflow-auto">
             <table className="w-full text-left">

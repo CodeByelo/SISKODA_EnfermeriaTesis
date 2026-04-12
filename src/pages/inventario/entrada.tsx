@@ -1,11 +1,12 @@
-// src/pages/inventario/entrada.tsx
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Insumo, MovimientoEntrada } from './types';
 import { authFetch } from '../../lib/auth';
+import { useNotifications } from '../../contexts/notification-context';
 
 export default function EntradaInventario() {
   const nav = useNavigate();
+  const { notify } = useNotifications();
   const [insumos, setInsumos] = useState<Insumo[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<MovimientoEntrada>({
@@ -16,20 +17,20 @@ export default function EntradaInventario() {
     notas: '',
   });
 
-  const fetchInsumos = async () => {
-    try {
-      const res = await authFetch('/api/inventario');
-      const data = await res.json();
-      setInsumos(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchInsumos();
+    const fetchInsumos = async () => {
+      try {
+        const res = await authFetch('/api/inventario');
+        const data = await res.json();
+        setInsumos(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void fetchInsumos();
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -40,7 +41,7 @@ export default function EntradaInventario() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.insumo_id || form.cantidad <= 0) {
-      alert('⚠️ Seleccione un insumo y cantidad válida');
+      notify({ tone: 'info', title: 'Selecciona un insumo y una cantidad valida' });
       return;
     }
 
@@ -50,16 +51,17 @@ export default function EntradaInventario() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
+
       if (res.ok) {
-        alert('✅ Entrada registrada');
+        notify({ tone: 'success', title: 'Entrada registrada' });
         nav('/inventario');
       } else {
         const err = await res.json();
-        alert(`❌ Error: ${err.error || 'No se pudo registrar'}`);
+        notify({ tone: 'error', title: 'No se pudo registrar', message: err.error || 'Revisa los datos de la entrada.' });
       }
     } catch (err) {
       console.error(err);
-      alert('❌ Error de conexión');
+      notify({ tone: 'error', title: 'Error de conexion' });
     }
   };
 

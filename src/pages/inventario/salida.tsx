@@ -1,11 +1,12 @@
-// src/pages/inventario/salida.tsx
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Insumo, MovimientoSalida } from './types';
 import { authFetch } from '../../lib/auth';
+import { useNotifications } from '../../contexts/notification-context';
 
 export default function SalidaInventario() {
   const nav = useNavigate();
+  const { notify } = useNotifications();
   const [insumos, setInsumos] = useState<Insumo[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<MovimientoSalida>({
@@ -15,21 +16,20 @@ export default function SalidaInventario() {
     notas: '',
   });
 
-  const fetchInsumos = async () => {
-    try {
-      const res = await authFetch('/api/inventario');
-      const data = await res.json();
-      // Solo insumos con stock > 0
-      setInsumos((Array.isArray(data) ? data : []).filter(i => i.stock_actual > 0));
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchInsumos();
+    const fetchInsumos = async () => {
+      try {
+        const res = await authFetch('/api/inventario');
+        const data = await res.json();
+        setInsumos((Array.isArray(data) ? data : []).filter(i => i.stock_actual > 0));
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void fetchInsumos();
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -40,13 +40,13 @@ export default function SalidaInventario() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.insumo_id || form.cantidad <= 0) {
-      alert('⚠️ Seleccione un insumo y cantidad válida');
+      notify({ tone: 'info', title: 'Selecciona un insumo y una cantidad valida' });
       return;
     }
 
     const insumo = insumos.find(i => i.id === Number(form.insumo_id));
     if (insumo && form.cantidad > insumo.stock_actual) {
-      alert(`⚠️ Stock insuficiente. Máximo disponible: ${insumo.stock_actual}`);
+      notify({ tone: 'info', title: 'Stock insuficiente', message: `Maximo disponible: ${insumo.stock_actual}` });
       return;
     }
 
@@ -57,15 +57,15 @@ export default function SalidaInventario() {
         body: JSON.stringify(form),
       });
       if (res.ok) {
-        alert('✅ Salida registrada');
+        notify({ tone: 'success', title: 'Salida registrada' });
         nav('/inventario');
       } else {
         const err = await res.json();
-        alert(`❌ Error: ${err.error || 'No se pudo registrar'}`);
+        notify({ tone: 'error', title: 'No se pudo registrar', message: err.error || 'Revisa los datos de la salida.' });
       }
     } catch (err) {
       console.error(err);
-      alert('❌ Error de conexión');
+      notify({ tone: 'error', title: 'Error de conexion' });
     }
   };
 
@@ -119,7 +119,7 @@ export default function SalidaInventario() {
             >
               <option value="Uso en consulta">Uso en consulta</option>
               <option value="Vencido">Vencido</option>
-              <option value="Pérdida">Pérdida</option>
+              <option value="PÃ©rdida">PÃ©rdida</option>
               <option value="Otro">Otro</option>
             </select>
           </div>
