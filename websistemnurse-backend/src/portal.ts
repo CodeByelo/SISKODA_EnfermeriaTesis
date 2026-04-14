@@ -64,7 +64,7 @@ router.get('/me/history', async (req: AuthRequest, res) => {
   const isPortalUser = portalRoles.includes(req.user.role);
   const userId = req.user.id;
   const { persona_id } = req.query;
-  const targetPersonaId = persona_id ? Number(persona_id) : null;
+  const targetPersonaId = persona_id ? String(persona_id) : null;
 
   if (!isPortalUser && !targetPersonaId) {
     return res.status(400).json({ error: 'persona_id es requerido para usuarios internos' });

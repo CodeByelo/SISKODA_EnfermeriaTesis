@@ -28,7 +28,7 @@ router.get('/', async (req, res) => {
           WHERE c.expediente_id = $1
           ORDER BY c.creado_en DESC
         `,
-        [Number(paciente_id)]
+        [String(paciente_id)]
       );
       return res.json(rows.rows ?? []);
     }

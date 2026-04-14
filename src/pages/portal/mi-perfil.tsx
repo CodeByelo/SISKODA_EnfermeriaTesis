@@ -5,12 +5,12 @@ import { useAuth } from "../../contexts/auth-context";
 import { authFetch } from "../../lib/auth";
 
 type PortalProfile = {
-  user_id: number;
+  user_id: string;
   email: string;
   role: string;
   estado_cuenta: string;
   ultimo_acceso: string | null;
-  persona_id: number | null;
+  persona_id: string | null;
   tipo_miembro: string | null;
   cedula: string | null;
   codigo_institucional: string | null;
@@ -24,7 +24,7 @@ type PortalProfile = {
   lapso: string | null;
   fecha_vencimiento_carnet: string | null;
   activo: boolean;
-  expediente_id: number | null;
+  expediente_id: string | null;
   visibilidad_paciente: string | null;
 };
 

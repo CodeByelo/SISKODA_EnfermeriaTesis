@@ -4,7 +4,7 @@ import { ArrowLongLeftIcon, ClipboardDocumentListIcon } from "@heroicons/react/2
 import { authFetch } from "../../lib/auth";
 
 type HistoryItem = {
-  id: number;
+  id: string;
   creado_en: string;
   prioridad: string;
   motivo: string | null;
@@ -50,7 +50,7 @@ export default function MiHistorial() {
               </p>
             </div>
             <button
-              onClick={() => nav("/dashboard")}
+              onClick={() => nav("/")}
               className="inline-flex h-11 items-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 text-sm font-semibold text-white"
             >
               <ArrowLongLeftIcon className="h-5 w-5" />

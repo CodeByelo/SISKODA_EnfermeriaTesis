@@ -168,9 +168,7 @@ router.post('/', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   const { id } = req.params;
-  const idNum = parseInt(id, 10);
-
-  if (isNaN(idNum)) {
+  if (!id) {
     return res.status(400).json({ error: 'ID invalido' });
   }
 
@@ -200,7 +198,7 @@ router.get('/:id', async (req, res) => {
         INNER JOIN personas p ON p.id = e.persona_id
         WHERE e.id = $1
       `,
-      [idNum]
+      [id]
     );
 
     if (result.rows.length === 0) {
@@ -215,14 +213,12 @@ router.get('/:id', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
   const { id } = req.params;
-  const idNum = parseInt(id, 10);
-
-  if (isNaN(idNum)) {
+  if (!id) {
     return res.status(400).json({ error: 'ID invalido' });
   }
 
   try {
-    const result = await pool.query('DELETE FROM expedientes WHERE id = $1 RETURNING id', [idNum]);
+    const result = await pool.query('DELETE FROM expedientes WHERE id = $1 RETURNING id', [id]);
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Expediente no encontrado' });
     }

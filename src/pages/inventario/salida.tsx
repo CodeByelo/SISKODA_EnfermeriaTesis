@@ -11,7 +11,7 @@ export default function SalidaInventario() {
   const [insumos, setInsumos] = useState<Insumo[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<MovimientoSalida>({
-    insumo_id: 0,
+    insumo_id: "",
     cantidad: 1,
     motivo: 'Uso en consulta',
     notas: '',
@@ -45,7 +45,7 @@ export default function SalidaInventario() {
       return;
     }
 
-    const insumo = insumos.find((i) => i.id === Number(form.insumo_id));
+    const insumo = insumos.find((i) => i.id === form.insumo_id);
     if (insumo && form.cantidad > insumo.stock_actual) {
       notify({ tone: 'info', title: 'Stock insuficiente', message: `Maximo disponible: ${insumo.stock_actual}` });
       return;

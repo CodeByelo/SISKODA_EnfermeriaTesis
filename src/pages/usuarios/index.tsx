@@ -5,7 +5,7 @@ import { authFetch } from "../../lib/auth";
 import { useAuth } from "../../contexts/auth-context";
 
 type UserRecord = {
-  id: number;
+  id: string;
   email: string;
   role: string;
 };
@@ -37,7 +37,7 @@ export default function Usuarios() {
   const { user } = useAuth();
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [savingId, setSavingId] = useState<number | null>(null);
+  const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   const summary = useMemo(
@@ -72,7 +72,7 @@ export default function Usuarios() {
     }
   };
 
-  const updateRole = async (id: number, role: string) => {
+  const updateRole = async (id: string, role: string) => {
     setSavingId(id);
     setError("");
 

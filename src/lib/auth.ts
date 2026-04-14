@@ -1,10 +1,10 @@
 import { API_URL } from "../config/api";
 
 export interface AuthUser {
-  id: number;
+  id: string;
   email: string;
   role: string;
-  personaId?: number | null;
+  personaId?: string | null;
   nombres?: string | null;
   apellidos?: string | null;
   tipo_miembro?: string | null;

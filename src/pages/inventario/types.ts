@@ -1,6 +1,6 @@
 // src/pages/inventario/types.ts
 export interface Insumo {
-  id: number;
+  id: string;
   nombre: string;
   descripcion: string | null;
   categoria: string | null;
@@ -12,7 +12,7 @@ export interface Insumo {
 }
 
 export interface MovimientoEntrada {
-  insumo_id: number;
+  insumo_id: string;
   cantidad: number;
   lote?: string;
   fecha_vencimiento?: string; 
@@ -20,7 +20,7 @@ export interface MovimientoEntrada {
 }
 
 export interface MovimientoSalida {
-  insumo_id: number;
+  insumo_id: string;
   cantidad: number;
   motivo: 'Uso en consulta' | 'Vencido' | 'Pérdida' | 'Otro';
   notas?: string;

@@ -51,13 +51,13 @@ router.post('/', async (req: AuthRequest, res) => {
   try {
     await client.query('BEGIN');
 
-    let expedienteId = expedienteIdFromFrontend ? Number(expedienteIdFromFrontend) : undefined;
+    let expedienteId = expedienteIdFromFrontend ? String(expedienteIdFromFrontend) : undefined;
 
     if (!expedienteId) {
       const tipoMiembro = resolveTipoMiembro(tipo_paciente ?? 'personal');
       const codigoInstitucional = tipoMiembro === 'estudiante' ? carnet_uni : codigo_empleado;
 
-      let personaId: number | undefined;
+      let personaId: string | undefined;
 
       if (codigoInstitucional) {
         const existingPerson = await client.query(
@@ -133,7 +133,7 @@ router.post('/', async (req: AuthRequest, res) => {
           diagnostico,
           notas_recomendacion,
           prioridad
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7::prioridad_consulta)
+          ) VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6, $7::prioridad_consulta)
         RETURNING id
       `,
       [
@@ -203,7 +203,7 @@ router.post('/', async (req: AuthRequest, res) => {
               motivo,
               referencia_consulta_id,
               registrado_por_user_id
-            ) VALUES ($1, 'consumo_consulta', 1, $2, $3, $4, $5, $6)
+            ) VALUES ($1::uuid, 'consumo_consulta', 1, $2, $3, $4, $5::uuid, $6::uuid)
           `,
           [
             inventarioItemId,
@@ -257,7 +257,7 @@ router.get('/', async (req, res) => {
         WHERE c.expediente_id = $1
         ORDER BY c.creado_en DESC
       `,
-      [Number(paciente_id)]
+      [String(paciente_id)]
     );
     res.json(rows.rows);
   } catch (err) {
@@ -283,7 +283,7 @@ router.put('/:id', async (req, res) => {
           diagnostico = $3,
           notas_recomendacion = $4,
           prioridad = $5::prioridad_consulta
-        WHERE id = $6
+        WHERE id = $6::uuid
         RETURNING id, motivo, sintomas, diagnostico, notas_recomendacion as notas_recom, prioridad, creado_en
       `,
       [
@@ -292,7 +292,7 @@ router.put('/:id', async (req, res) => {
         diagnostico ?? null,
         notas_recom ?? null,
         resolvePrioridad(prioridad),
-        Number(id)
+        id
       ]
     );
     if (result.rowCount === 0) {
@@ -308,7 +308,7 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    const result = await pool.query('DELETE FROM consultas WHERE id = $1 RETURNING id', [Number(id)]);
+    const result = await pool.query('DELETE FROM consultas WHERE id = $1::uuid RETURNING id', [id]);
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Consulta no encontrada' });
     }

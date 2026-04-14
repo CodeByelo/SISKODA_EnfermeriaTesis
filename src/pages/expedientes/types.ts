@@ -1,5 +1,5 @@
 export interface Expediente {
-  id: number;
+  id: string;
   tipo_paciente: "Estudiante" | "Profesor" | "Personal Administrativo";
   carnet_uni: string | null;
   codigo_empleado: string | null;

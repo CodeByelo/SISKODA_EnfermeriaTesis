@@ -9,7 +9,7 @@ const LiquidEther = lazy(() => import('../../../components/LiquidEther'));
 type LoginResponse = {
   token: string;
   user: {
-    id: number;
+    id: string;
     email: string;
     role: string;
   };

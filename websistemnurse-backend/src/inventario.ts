@@ -126,8 +126,8 @@ router.post('/entrada', async (req: AuthRequest, res) => {
   try {
     await client.query('BEGIN');
     const current = await client.query(
-      'SELECT stock_actual FROM inventario_items WHERE id = $1 FOR UPDATE',
-      [Number(insumo_id)]
+      'SELECT stock_actual FROM inventario_items WHERE id = $1::uuid FOR UPDATE',
+      [insumo_id]
     );
 
     if (current.rowCount === 0) {
@@ -146,7 +146,7 @@ router.post('/entrada', async (req: AuthRequest, res) => {
         WHERE id = $2
         RETURNING *
       `,
-      [stockResultante, Number(insumo_id)]
+      [stockResultante, insumo_id]
     );
 
     let loteId: number | null = null;
@@ -161,7 +161,7 @@ router.post('/entrada', async (req: AuthRequest, res) => {
           ) VALUES ($1, $2, $3, $4)
           RETURNING id
         `,
-        [Number(insumo_id), lote || null, fecha_vencimiento || null, cantidadNum]
+        [insumo_id, lote || null, fecha_vencimiento || null, cantidadNum]
       );
       loteId = loteResult.rows[0].id;
     }
@@ -180,7 +180,7 @@ router.post('/entrada', async (req: AuthRequest, res) => {
         ) VALUES ($1, $2, 'entrada', $3, $4, $5, $6, $7)
       `,
       [
-        Number(insumo_id),
+        insumo_id,
         loteId,
         cantidadNum,
         stockAnterior,
@@ -209,14 +209,13 @@ router.post('/salida', async (req: AuthRequest, res) => {
   }
 
   const cantidadNum = Number(cantidad);
-  const insumoIdNum = Number(insumo_id);
   const client = await pool.connect();
 
   try {
     await client.query('BEGIN');
     const check = await client.query(
       'SELECT stock_actual FROM inventario_items WHERE id = $1 FOR UPDATE',
-      [insumoIdNum]
+      [insumo_id]
     );
 
     if (check.rowCount === 0) {
@@ -240,7 +239,7 @@ router.post('/salida', async (req: AuthRequest, res) => {
         WHERE id = $2
         RETURNING *
       `,
-      [stockResultante, insumoIdNum]
+      [stockResultante, insumo_id]
     );
 
     await client.query(
@@ -256,7 +255,7 @@ router.post('/salida', async (req: AuthRequest, res) => {
         ) VALUES ($1, 'salida', $2, $3, $4, $5, $6)
       `,
       [
-        insumoIdNum,
+        insumo_id,
         cantidadNum,
         stockActual,
         stockResultante,
@@ -278,14 +277,12 @@ router.post('/salida', async (req: AuthRequest, res) => {
 
 router.delete('/:id', async (req, res) => {
   const { id } = req.params;
-  const idNum = Number(id);
-
-  if (isNaN(idNum)) {
+  if (!id) {
     return res.status(400).json({ error: 'ID invalido' });
   }
 
   try {
-    const check = await pool.query('SELECT id, stock_actual FROM inventario_items WHERE id = $1', [idNum]);
+    const check = await pool.query('SELECT id, stock_actual FROM inventario_items WHERE id = $1::uuid', [id]);
 
     if (check.rowCount === 0) {
       return res.status(404).json({ error: 'Insumo no encontrado' });
@@ -295,7 +292,7 @@ router.delete('/:id', async (req, res) => {
       return res.status(400).json({ error: 'No se puede eliminar un insumo con stock > 0' });
     }
 
-    await pool.query('DELETE FROM inventario_items WHERE id = $1', [idNum]);
+    await pool.query('DELETE FROM inventario_items WHERE id = $1::uuid', [id]);
     res.status(204).send();
   } catch (err) {
     console.error('Error al eliminar insumo:', err);

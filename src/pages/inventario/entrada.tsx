@@ -11,7 +11,7 @@ export default function EntradaInventario() {
   const [insumos, setInsumos] = useState<Insumo[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<MovimientoEntrada>({
-    insumo_id: 0,
+    insumo_id: "",
     cantidad: 1,
     lote: '',
     fecha_vencimiento: '',

@@ -5,18 +5,18 @@ import pool from './db';
 
 export type AuthRequest = Request & {
   user?: {
-    id: number;
+    id: string;
     email: string;
     role: string;
-    personaId?: number | null;
+    personaId?: string | null;
   };
 };
 
 type JwtPayload = {
-  id: number;
+  id: string;
   email: string;
   role: string;
-  personaId?: number | null;
+  personaId?: string | null;
 };
 
 const getJwtSecret = () => {

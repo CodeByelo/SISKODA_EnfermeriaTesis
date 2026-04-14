@@ -8,7 +8,7 @@ import {
 import { authFetch, getCachedJson, setCachedJson } from "../../lib/auth";
 
 interface ConsultaHoy {
-  id: number;
+  id: string;
   nombre: string;
   apellido: string;
   carnet_uni: string | null;

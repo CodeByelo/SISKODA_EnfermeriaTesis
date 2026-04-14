@@ -8,7 +8,7 @@ import { useNotifications } from "../../contexts/notification-context";
 import type { Expediente } from "./types";
 
 type Consulta = {
-  id: number;
+  id: string;
   motivo: string;
   sintomas: string | null;
   diagnostico: string | null;
@@ -19,7 +19,7 @@ type Consulta = {
 };
 
 type InventarioMedicamento = {
-  id: number;
+  id: string;
   nombre: string;
   cantidad_disponible: number;
 };
@@ -112,7 +112,7 @@ export default function HistorialPaciente() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          paciente_id: Number(id),
+          paciente_id: id,
           motivo: datos.motivo,
           sintomas: datos.sintomas,
           diagnostico: datos.diagnostico,
@@ -137,7 +137,7 @@ export default function HistorialPaciente() {
     }
   };
 
-  const guardarEdicionConsulta = async (consultaId: number, datos: ConsultaPayload) => {
+  const guardarEdicionConsulta = async (consultaId: string, datos: ConsultaPayload) => {
     try {
       const response = await authFetch(`/api/consultas/${consultaId}`, {
         method: "PUT",
@@ -166,7 +166,7 @@ export default function HistorialPaciente() {
     }
   };
 
-  const eliminarConsulta = async (consultaId: number) => {
+  const eliminarConsulta = async (consultaId: string) => {
     if (!confirm("¿Estás seguro de eliminar esta consulta?")) return;
     try {
       const res = await authFetch(`/api/consultas/${consultaId}`, {

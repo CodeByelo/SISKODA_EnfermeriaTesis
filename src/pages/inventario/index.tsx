@@ -50,7 +50,7 @@ export default function Inventario() {
     return "bg-emerald-100 text-emerald-700";
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm("Estas seguro de eliminar este insumo?")) return;
 
     try {

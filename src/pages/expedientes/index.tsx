@@ -29,7 +29,7 @@ export default function Expedientes() {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm("Estas seguro de eliminar este expediente? Esta accion no se puede deshacer.")) {
       return;
     }
