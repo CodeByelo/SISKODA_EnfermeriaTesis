@@ -12,7 +12,7 @@ import { XMarkIcon } from "@heroicons/react/24/outline";
 type NotificationTone = "success" | "error" | "info";
 
 type NotificationItem = {
-  id: number;
+  id: string;
   title: string;
   message?: string;
   tone: NotificationTone;
@@ -33,12 +33,12 @@ const toneClassMap: Record<NotificationTone, string> = {
 export function NotificationProvider({ children }: PropsWithChildren) {
   const [items, setItems] = useState<NotificationItem[]>([]);
 
-  const dismiss = useCallback((id: number) => {
+  const dismiss = useCallback((id: string) => {
     setItems((current) => current.filter((item) => item.id !== id));
   }, []);
 
   const notify = useCallback((input: Omit<NotificationItem, "id">) => {
-    const id = Date.now() + Math.floor(Math.random() * 1000);
+    const id = crypto.randomUUID();
     setItems((current) => [...current, { ...input, id }]);
     window.setTimeout(() => dismiss(id), 4200);
   }, [dismiss]);
