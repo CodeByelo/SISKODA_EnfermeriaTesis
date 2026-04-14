@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLongLeftIcon, IdentificationIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
+import { useAuth } from "../../contexts/auth-context";
 import { authFetch } from "../../lib/auth";
 
 type PortalProfile = {
@@ -29,6 +30,7 @@ type PortalProfile = {
 
 export default function MiPerfil() {
   const nav = useNavigate();
+  const { logout } = useAuth();
   const [profile, setProfile] = useState<PortalProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -63,11 +65,14 @@ export default function MiPerfil() {
               </p>
             </div>
             <button
-              onClick={() => nav("/dashboard")}
+              onClick={() => {
+                logout();
+                nav("/", { replace: true });
+              }}
               className="inline-flex h-11 items-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 text-sm font-semibold text-white"
             >
               <ArrowLongLeftIcon className="h-5 w-5" />
-              Volver
+              Salir
             </button>
           </div>
         </section>
