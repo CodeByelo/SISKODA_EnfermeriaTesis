@@ -41,6 +41,7 @@ router.get('/history', async (_req, res) => {
         SELECT
           'consulta' as tipo,
           c.id as referencia_id,
+          'consultas' as origen,
           c.creado_en as fecha,
           COALESCE(actor.email, 'Sin registro') as actor_email,
           COALESCE(actor.role::text, 'sin_rol') as actor_role,
@@ -51,7 +52,8 @@ router.get('/history', async (_req, res) => {
             SELECT string_agg(cm.nombre_medicamento, ', ' ORDER BY cm.id)
             FROM consulta_medicamentos cm
             WHERE cm.consulta_id = c.id
-          ), 'Sin medicamentos') as detalle
+          ), 'Sin medicamentos') as detalle,
+          FALSE as eliminable
         FROM consultas c
         INNER JOIN expedientes e ON e.id = c.expediente_id
         INNER JOIN personas paciente ON paciente.id = e.persona_id
@@ -66,6 +68,7 @@ router.get('/history', async (_req, res) => {
         SELECT
           'inventario' as tipo,
           im.id as referencia_id,
+          'inventario_movimientos' as origen,
           im.creado_en as fecha,
           COALESCE(actor.email, 'Sin registro') as actor_email,
           COALESCE(actor.role::text, 'sin_rol') as actor_role,
@@ -92,7 +95,8 @@ router.get('/history', async (_req, res) => {
             ' -> ',
             COALESCE(im.stock_resultante::text, '0'),
             CASE WHEN im.motivo IS NOT NULL AND im.motivo <> '' THEN CONCAT(' | Motivo: ', im.motivo) ELSE '' END
-          ) as detalle
+          ) as detalle,
+          FALSE as eliminable
         FROM inventario_movimientos im
         INNER JOIN inventario_items ii ON ii.id = im.inventario_item_id
         LEFT JOIN usuarios actor ON actor.id = im.registrado_por_user_id
@@ -110,6 +114,7 @@ router.get('/history', async (_req, res) => {
             SELECT
               'auditoria' as tipo,
               aa.id as referencia_id,
+              'auditoria_accesos' as origen,
               aa.creado_en as fecha,
               COALESCE(actor.email, 'Sin registro') as actor_email,
               COALESCE(actor.role::text, 'sin_rol') as actor_role,
@@ -123,7 +128,8 @@ router.get('/history', async (_req, res) => {
                 ' - ',
                 INITCAP(aa.modulo)
               ) as titulo,
-              COALESCE(aa.metadata::text, 'Sin detalle') as detalle
+              COALESCE(aa.metadata::text, 'Sin detalle') as detalle,
+              TRUE as eliminable
             FROM auditoria_accesos aa
             LEFT JOIN usuarios actor ON actor.id = aa.user_id
             LEFT JOIN personas paciente ON paciente.id = aa.persona_id
@@ -141,6 +147,31 @@ router.get('/history', async (_req, res) => {
   } catch (error) {
     console.error('Error obteniendo historial de usuarios:', error);
     res.status(500).json({ error: 'No se pudo cargar el historial' });
+  }
+});
+
+router.delete('/history/:origen/:id', async (req: AuthRequest, res) => {
+  const { origen, id } = req.params;
+
+  if (origen !== 'auditoria_accesos') {
+    return res.status(400).json({ error: 'Solo se pueden eliminar entradas de auditoria desde esta vista' });
+  }
+
+  if (!id) {
+    return res.status(400).json({ error: 'ID invalido' });
+  }
+
+  try {
+    const result = await pool.query('DELETE FROM auditoria_accesos WHERE id = $1 RETURNING id', [id]);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Registro no encontrado' });
+    }
+
+    res.status(204).send();
+  } catch (error) {
+    console.error('Error eliminando registro de auditoria:', error);
+    res.status(500).json({ error: 'No se pudo eliminar el registro' });
   }
 });
 

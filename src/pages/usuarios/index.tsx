@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeftIcon, ShieldCheckIcon, TrashIcon, UserGroupIcon } from "@heroicons/react/24/outline";
+import { ArrowLeftIcon, MagnifyingGlassIcon, ShieldCheckIcon, TrashIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
 import { authFetch } from "../../lib/auth";
 import { useAuth } from "../../contexts/auth-context";
@@ -14,6 +14,7 @@ type UserRecord = {
 type HistoryRecord = {
   tipo: string;
   referencia_id: string;
+  origen: string;
   fecha: string;
   actor_email: string;
   actor_role: string;
@@ -21,6 +22,7 @@ type HistoryRecord = {
   paciente_codigo: string;
   titulo: string;
   detalle: string;
+  eliminable: boolean;
 };
 
 const roleOptions = [
@@ -55,6 +57,9 @@ export default function Usuarios() {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryRecord[]>([]);
+  const [historyQuery, setHistoryQuery] = useState("");
+  const [historyType, setHistoryType] = useState("todos");
+  const [historyDeletingId, setHistoryDeletingId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   const summary = useMemo(
@@ -178,6 +183,77 @@ export default function Usuarios() {
     void fetchUsers();
     void fetchHistory();
   }, []);
+
+  const deleteHistoryItem = async (item: HistoryRecord) => {
+    if (!item.eliminable) {
+      notify({
+        tone: "info",
+        title: "Este registro no se puede borrar aqui",
+        message: "Las consultas y movimientos reales se eliminan desde sus modulos correspondientes.",
+      });
+      return;
+    }
+
+    const accepted = await confirm({
+      title: "Eliminar registro de auditoria",
+      message: "Esta accion solo limpia la bitacora visual de auditoria. No revierte la accion original.",
+      confirmLabel: "Eliminar",
+      cancelLabel: "Cancelar",
+      tone: "error",
+    });
+
+    if (!accepted) return;
+
+    setHistoryDeletingId(`${item.origen}:${item.referencia_id}`);
+
+    try {
+      const response = await authFetch(`/api/users/history/${item.origen}/${item.referencia_id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const data = (await response.json().catch(() => ({}))) as { error?: string };
+        notify({ tone: "error", title: "No se pudo eliminar", message: data.error ?? "Intenta nuevamente." });
+        return;
+      }
+
+      setHistory((current) =>
+        current.filter((entry) => !(entry.origen === item.origen && entry.referencia_id === item.referencia_id))
+      );
+      notify({ tone: "success", title: "Registro de auditoria eliminado" });
+    } catch (historyDeleteError) {
+      console.error(historyDeleteError);
+      notify({ tone: "error", title: "No se pudo eliminar el registro" });
+    } finally {
+      setHistoryDeletingId(null);
+    }
+  };
+
+  const filteredHistory = useMemo(() => {
+    const query = historyQuery.trim().toLowerCase();
+
+    return history.filter((item) => {
+      if (historyType !== "todos" && item.tipo !== historyType) {
+        return false;
+      }
+
+      if (!query) {
+        return true;
+      }
+
+      return [
+        item.actor_email,
+        item.actor_role,
+        item.paciente_nombre,
+        item.paciente_codigo,
+        item.titulo,
+        item.detalle,
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(query);
+    });
+  }, [history, historyQuery, historyType]);
 
   if (user?.role !== "admin") {
     return (
@@ -349,7 +425,7 @@ export default function Usuarios() {
               </p>
             </div>
             <div className="rounded-2xl border border-violet-100 bg-violet-50/70 px-4 py-3 text-sm font-semibold text-violet-700">
-              {history.length} eventos recientes
+              {filteredHistory.length} de {history.length} eventos
             </div>
           </div>
 
@@ -362,35 +438,99 @@ export default function Usuarios() {
               Aun no hay eventos visibles en el historial operativo.
             </div>
           ) : (
-            <div className="mt-6 grid gap-4">
-              {history.map((item) => (
-                <article
-                  key={`${item.tipo}-${item.referencia_id}-${item.fecha}`}
-                  className="rounded-3xl border border-gray-100 bg-[linear-gradient(180deg,#ffffff_0%,#faf7ff_100%)] p-5 shadow-[0_18px_35px_-32px_rgba(76,29,149,0.45)]"
+            <div className="mt-6 space-y-4">
+              <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px]">
+                <label className="relative block">
+                  <MagnifyingGlassIcon className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-violet-400" />
+                  <input
+                    type="text"
+                    value={historyQuery}
+                    onChange={(event) => setHistoryQuery(event.target.value)}
+                    placeholder="Buscar por usuario, paciente, identificador o detalle..."
+                    className="w-full rounded-2xl border border-violet-100 bg-violet-50/50 py-3 pl-11 pr-4 text-sm text-gray-800 outline-none transition focus:border-violet-300 focus:ring-4 focus:ring-violet-100"
+                  />
+                </label>
+                <select
+                  value={historyType}
+                  onChange={(event) => setHistoryType(event.target.value)}
+                  className="rounded-2xl border border-violet-100 bg-white px-4 py-3 text-sm font-medium text-gray-800 outline-none transition focus:border-violet-300 focus:ring-4 focus:ring-violet-100"
                 >
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="space-y-3">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-700 ring-1 ring-violet-200">
-                          {item.tipo}
-                        </span>
-                        <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600 ring-1 ring-gray-200">
-                          {new Date(item.fecha).toLocaleString("es-VE")}
-                        </span>
-                      </div>
-                      <h3 className="text-lg font-semibold text-gray-900">{item.titulo}</h3>
-                      <p className="text-sm leading-6 text-gray-600">{item.detalle}</p>
-                    </div>
+                  <option value="todos">Todos los eventos</option>
+                  <option value="consulta">Consultas</option>
+                  <option value="inventario">Inventario</option>
+                  <option value="auditoria">Auditoria</option>
+                </select>
+              </div>
 
-                    <div className="grid gap-3 rounded-2xl border border-violet-100 bg-violet-50/60 px-4 py-4 text-sm text-gray-700 lg:min-w-[320px]">
-                      <p><span className="font-semibold text-gray-900">Usuario:</span> {item.actor_email}</p>
-                      <p><span className="font-semibold text-gray-900">Rol:</span> {item.actor_role}</p>
-                      <p><span className="font-semibold text-gray-900">Paciente:</span> {item.paciente_nombre}</p>
-                      <p><span className="font-semibold text-gray-900">Identificador:</span> {item.paciente_codigo}</p>
-                    </div>
+              {filteredHistory.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-6 py-8 text-center text-sm text-gray-500">
+                  No hay coincidencias con los filtros aplicados.
+                </div>
+              ) : (
+                <div className="overflow-hidden rounded-[24px] border border-violet-100">
+                  <div className="max-h-[680px] overflow-auto">
+                    <table className="min-w-full text-left">
+                      <thead className="sticky top-0 z-10 bg-violet-50/95 backdrop-blur">
+                        <tr className="border-b border-violet-100 text-xs uppercase tracking-[0.18em] text-gray-500">
+                          <th className="px-4 py-3 font-semibold">Fecha</th>
+                          <th className="px-4 py-3 font-semibold">Tipo</th>
+                          <th className="px-4 py-3 font-semibold">Accion</th>
+                          <th className="px-4 py-3 font-semibold">Usuario</th>
+                          <th className="px-4 py-3 font-semibold">Paciente</th>
+                          <th className="px-4 py-3 font-semibold">Detalle</th>
+                          <th className="px-4 py-3 font-semibold text-right">Opciones</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white">
+                        {filteredHistory.map((item) => {
+                          const deleteKey = `${item.origen}:${item.referencia_id}`;
+
+                          return (
+                            <tr key={`${item.tipo}-${item.referencia_id}-${item.fecha}`} className="border-b border-gray-100 align-top text-sm">
+                              <td className="px-4 py-3 whitespace-nowrap text-gray-600">
+                                {new Date(item.fecha).toLocaleString("es-VE")}
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-semibold text-violet-700 ring-1 ring-violet-200">
+                                  {item.tipo}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 min-w-[220px]">
+                                <p className="font-semibold text-gray-900">{item.titulo}</p>
+                              </td>
+                              <td className="px-4 py-3 min-w-[220px] text-gray-700">
+                                <p className="font-medium text-gray-900">{item.actor_email}</p>
+                                <p className="mt-1 text-xs uppercase tracking-[0.14em] text-gray-400">{item.actor_role}</p>
+                              </td>
+                              <td className="px-4 py-3 min-w-[200px] text-gray-700">
+                                <p className="font-medium text-gray-900">{item.paciente_nombre}</p>
+                                <p className="mt-1 text-xs text-gray-500">{item.paciente_codigo}</p>
+                              </td>
+                              <td className="px-4 py-3 min-w-[320px] text-gray-600">
+                                <p className="line-clamp-3 leading-6">{item.detalle}</p>
+                              </td>
+                              <td className="px-4 py-3 text-right">
+                                {item.eliminable ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => void deleteHistoryItem(item)}
+                                    disabled={historyDeletingId === deleteKey}
+                                    className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                  >
+                                    {historyDeletingId === deleteKey ? "Eliminando..." : "Eliminar"}
+                                  </button>
+                                ) : (
+                                  <span className="text-xs text-gray-400">Desde su modulo</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
-                </article>
-              ))}
+                </div>
+              )}
             </div>
           )}
         </section>
