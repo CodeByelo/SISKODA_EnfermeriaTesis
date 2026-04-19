@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLongLeftIcon, IdentificationIcon, ShieldCheckIcon, ClipboardDocumentListIcon } from "@heroicons/react/24/outline";
+import { 
+  ArrowLongLeftIcon, 
+  IdentificationIcon, 
+  ShieldCheckIcon, 
+  ClipboardDocumentListIcon,
+  EyeIcon,
+  XMarkIcon
+} from "@heroicons/react/24/outline";
 import { useAuth } from "../../contexts/auth-context";
 import { authFetch } from "../../lib/auth";
 
@@ -45,6 +52,7 @@ export default function MiPerfil() {
   const [profile, setProfile] = useState<PortalProfile | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedConsulta, setSelectedConsulta] = useState<HistoryItem | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -74,7 +82,7 @@ export default function MiPerfil() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#eef2ff_100%)] px-6 py-8">
+    <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#eef2ff_100%)] px-6 py-8 relative">
       <div className="mx-auto max-w-5xl space-y-6">
         <section className="rounded-[28px] bg-gradient-to-r from-[#0f172a] via-[#1d4ed8] to-[#0891b2] p-8 text-white shadow-2xl">
           <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
@@ -141,7 +149,7 @@ export default function MiPerfil() {
               ) : (
                 <div className="space-y-6">
                   {history.map((item) => (
-                    <article key={item.id} className="rounded-[24px] border border-violet-100 bg-slate-50/50 p-6">
+                    <article key={item.id} className="rounded-[24px] border border-violet-100 bg-slate-50/50 p-6 relative group transition hover:border-violet-300">
                       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                         <div className="flex items-start gap-3">
                           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
@@ -154,19 +162,28 @@ export default function MiPerfil() {
                             </p>
                           </div>
                         </div>
-                        <span className="inline-flex rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-700">
-                          Prioridad: {item.prioridad}
-                        </span>
+                        <div className="flex items-center gap-3">
+                          <span className="inline-flex rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-700">
+                            Prioridad: {item.prioridad}
+                          </span>
+                          <button
+                            onClick={() => setSelectedConsulta(item)}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white border border-slate-200 text-slate-600 shadow-sm transition hover:bg-violet-600 hover:text-white hover:border-violet-600"
+                            title="Ver detalle completo"
+                          >
+                            <EyeIcon className="h-5 w-5" />
+                          </button>
+                        </div>
                       </div>
 
                       <div className="mt-5 grid gap-4 md:grid-cols-2">
                         <div>
                           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Diagnóstico</p>
-                          <p className="mt-2 text-sm text-slate-700">{item.diagnostico ?? "Sin detalle"}</p>
+                          <p className="mt-2 text-sm text-slate-700 line-clamp-2">{item.diagnostico ?? "Sin detalle"}</p>
                         </div>
                         <div>
                           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Medicamentos</p>
-                          <p className="mt-2 whitespace-pre-line text-sm text-slate-700">{item.medicamentos ?? "Sin registro"}</p>
+                          <p className="mt-2 whitespace-pre-line text-sm text-slate-700 line-clamp-2">{item.medicamentos ?? "Sin registro"}</p>
                         </div>
                       </div>
                     </article>
@@ -201,6 +218,87 @@ export default function MiPerfil() {
           </>
         )}
       </div>
+
+      {/* Modal de Detalle */}
+      {selectedConsulta && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="relative p-8">
+              <button 
+                onClick={() => setSelectedConsulta(null)}
+                className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 transition"
+              >
+                <XMarkIcon className="h-6 w-6 text-slate-400" />
+              </button>
+
+              <div className="flex items-center gap-4 mb-8">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-600 text-white shadow-lg shadow-violet-200">
+                  <ClipboardDocumentListIcon className="h-8 w-8" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-semibold text-slate-900">{selectedConsulta.motivo ?? "Detalle de Consulta"}</h3>
+                  <p className="text-sm text-slate-500">{new Date(selectedConsulta.creado_en).toLocaleString("es-VE")}</p>
+                </div>
+              </div>
+
+              <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="p-5 rounded-2xl bg-slate-50">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-violet-600 mb-2">Prioridad</p>
+                    <span className="inline-flex rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-700">
+                      {selectedConsulta.prioridad}
+                    </span>
+                  </div>
+                  <div className="p-5 rounded-2xl bg-slate-50">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-violet-600 mb-2">Estado</p>
+                    <span className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                      Finalizada
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-6 rounded-2xl bg-slate-50/50 border border-slate-100">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-3">Síntomas Observados</p>
+                  <p className="text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">
+                    {selectedConsulta.sintomas || "No se registraron síntomas específicos."}
+                  </p>
+                </div>
+
+                <div className="p-6 rounded-2xl bg-violet-50/30 border border-violet-100">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-violet-600 mb-3">Diagnóstico Médico</p>
+                  <p className="text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">
+                    {selectedConsulta.diagnostico || "Diagnóstico pendiente de evaluación detallada."}
+                  </p>
+                </div>
+
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="p-6 rounded-2xl bg-emerald-50/30 border border-emerald-100">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-600 mb-3">Medicamentos</p>
+                    <p className="text-sm leading-relaxed text-slate-700 whitespace-pre-line">
+                      {selectedConsulta.medicamentos || "Ningún medicamento recetado."}
+                    </p>
+                  </div>
+                  <div className="p-6 rounded-2xl bg-amber-50/30 border border-amber-100">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-600 mb-3">Recomendaciones</p>
+                    <p className="text-sm leading-relaxed text-slate-700 whitespace-pre-line">
+                      {selectedConsulta.notas_recom || "Sin notas adicionales."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8">
+                <button 
+                  onClick={() => setSelectedConsulta(null)}
+                  className="w-full py-4 rounded-2xl bg-slate-900 text-white font-semibold shadow-xl transition hover:bg-slate-800"
+                >
+                  Cerrar Detalle
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
