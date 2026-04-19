@@ -82,10 +82,14 @@ router.get('/me/history', async (req: AuthRequest, res) => {
   const targetPersonaId = queryPersonaId ? String(queryPersonaId) : personaId;
 
   if (!targetPersonaId) {
+    console.error('History Error: No targetPersonaId found in token or query');
     return res.status(400).json({ error: 'persona_id es requerido' });
   }
 
   try {
+    console.log(`Fetching history for persona: ${targetPersonaId}`);
+    
+    // Consulta robusta que funciona tanto con UUIDs como con IDs numéricos/planos
     const historyQuery = `
       SELECT
         c.id,
@@ -106,13 +110,15 @@ router.get('/me/history', async (req: AuthRequest, res) => {
         p.apellidos,
         p.tipo_miembro
       FROM personas p
-      INNER JOIN expedientes e ON e.persona_id = p.id
-      INNER JOIN consultas c ON c.expediente_id = e.id
-      WHERE p.id = $1::uuid OR p.id::text = $1
+      LEFT JOIN expedientes e ON e.persona_id = p.id
+      LEFT JOIN consultas c ON c.expediente_id = e.id
+      WHERE (p.id::text = $1 OR p.cedula = $1 OR p.codigo_institucional = $1)
+        AND c.id IS NOT NULL
       ORDER BY c.creado_en DESC
     `;
 
     const result = await pool.query(historyQuery, [targetPersonaId]);
+    console.log(`Found ${result.rows.length} history items for persona ${targetPersonaId}`);
     res.json(result.rows);
   } catch (error) {
     console.error('Error obteniendo historial personal:', error);
