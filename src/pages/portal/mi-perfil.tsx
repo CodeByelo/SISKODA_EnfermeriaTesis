@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLongLeftIcon, IdentificationIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
+import { ArrowLongLeftIcon, IdentificationIcon, ShieldCheckIcon, ClipboardDocumentListIcon } from "@heroicons/react/24/outline";
 import { useAuth } from "../../contexts/auth-context";
 import { authFetch } from "../../lib/auth";
 
@@ -28,19 +28,40 @@ type PortalProfile = {
   visibilidad_paciente: string | null;
 };
 
+type HistoryItem = {
+  id: string;
+  creado_en: string;
+  prioridad: string;
+  motivo: string | null;
+  sintomas: string | null;
+  diagnostico: string | null;
+  medicamentos: string | null;
+  notas_recom: string | null;
+};
+
 export default function MiPerfil() {
   const nav = useNavigate();
   const { logout } = useAuth();
   const [profile, setProfile] = useState<PortalProfile | null>(null);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadProfile = async () => {
+    const loadData = async () => {
       try {
-        const response = await authFetch("/api/portal/me/profile");
-        const data = (await response.json()) as PortalProfile;
-        if (response.ok) {
-          setProfile(data);
+        const [profileRes, historyRes] = await Promise.all([
+          authFetch("/api/portal/me/profile"),
+          authFetch("/api/portal/me/history")
+        ]);
+
+        if (profileRes.ok) {
+          const profileData = await profileRes.json();
+          setProfile(profileData);
+        }
+
+        if (historyRes.ok) {
+          const historyData = await historyRes.json();
+          setHistory(historyData);
         }
       } catch (error) {
         console.error(error);
@@ -49,7 +70,7 @@ export default function MiPerfil() {
       }
     };
 
-    void loadProfile();
+    void loadData();
   }, []);
 
   return (
@@ -61,7 +82,7 @@ export default function MiPerfil() {
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-cyan-100">Portal personal</p>
               <h1 className="mt-3 text-4xl font-semibold tracking-tight">Mi perfil institucional</h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-cyan-50">
-                Consulta tu identidad institucional, estado de cuenta y vinculo con tu expediente clinico.
+                Consulta tu identidad institucional y tu historial médico directamente aquí.
               </p>
             </div>
             <button
@@ -78,7 +99,7 @@ export default function MiPerfil() {
         </section>
 
         {loading ? (
-          <section className="rounded-[28px] bg-white p-8 shadow-sm">Cargando perfil...</section>
+          <section className="rounded-[28px] bg-white p-8 shadow-sm">Cargando datos...</section>
         ) : !profile ? (
           <section className="rounded-[28px] bg-white p-8 shadow-sm">No se pudo cargar tu perfil.</section>
         ) : (
@@ -109,13 +130,49 @@ export default function MiPerfil() {
               </article>
             </section>
 
-            <section className="rounded-[28px] border border-cyan-100 bg-[linear-gradient(180deg,#f8fdff_0%,#ffffff_100%)] p-6 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-600">Como funciona</p>
-              <h2 className="mt-3 text-2xl font-semibold text-slate-900">Acceso personal al historial</h2>
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-                El area de enfermeria registra las consultas en el expediente clinico. Tu portal personal solo muestra esa informacion cuando ya existe una cuenta institucional vinculada a tu identidad.
-                Si todavia no ves atenciones en "Mi Historial", puede significar que aun no hay consultas registradas o que tu expediente sigue en proceso de vinculacion.
-              </p>
+            <section className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-500 mb-6">Mi Historial Médico</p>
+              
+              {history.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-8 text-center">
+                  <p className="text-base font-semibold text-slate-800">No hay consultas registradas todavía.</p>
+                  <p className="mt-2 text-sm text-slate-500">Tu historial aparecerá aquí en cuanto el personal de enfermería registre una atención.</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {history.map((item) => (
+                    <article key={item.id} className="rounded-[24px] border border-violet-100 bg-slate-50/50 p-6">
+                      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
+                            <ClipboardDocumentListIcon className="h-6 w-6" />
+                          </div>
+                          <div>
+                            <p className="text-lg font-semibold text-slate-900">{item.motivo ?? "Consulta registrada"}</p>
+                            <p className="mt-1 text-sm text-slate-500">
+                              {new Date(item.creado_en).toLocaleString("es-VE")}
+                            </p>
+                          </div>
+                        </div>
+                        <span className="inline-flex rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-700">
+                          Prioridad: {item.prioridad}
+                        </span>
+                      </div>
+
+                      <div className="mt-5 grid gap-4 md:grid-cols-2">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Diagnóstico</p>
+                          <p className="mt-2 text-sm text-slate-700">{item.diagnostico ?? "Sin detalle"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Medicamentos</p>
+                          <p className="mt-2 whitespace-pre-line text-sm text-slate-700">{item.medicamentos ?? "Sin registro"}</p>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
             </section>
 
             <section className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-sm">
