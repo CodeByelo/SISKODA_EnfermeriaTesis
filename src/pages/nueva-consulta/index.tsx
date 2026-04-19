@@ -143,11 +143,12 @@ export default function NuevaConsulta() {
     if (!paciente_id && form.carnet_uni) {
       const exists = await checkIfPacienteExists(form.carnet_uni, form.tipo_paciente);
       if (exists) {
-        return notify({
+        notify({
           tone: "info",
-          title: "Paciente ya registrado",
-          message: "Agrega la consulta desde el historial del expediente.",
+          title: "Paciente ya identificado",
+          message: "El sistema usará el expediente existente para este carnet.",
         });
+        // No bloqueamos el flujo, permitimos que el backend lo vincule automáticamente
       }
     }
 

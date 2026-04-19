@@ -83,7 +83,7 @@ router.get('/me/history', async (req: AuthRequest, res) => {
         WHERE id::text = $1 
            OR (cedula IS NOT NULL AND cedula = $2)
            OR (codigo_institucional IS NOT NULL AND codigo_institucional = $3)
-           OR (LOWER(nombres) = LOWER($4) AND LOWER(apellidos) = LOWER($5))
+           OR (TRIM(LOWER(nombres)) = TRIM(LOWER($4)) AND TRIM(LOWER(apellidos)) = TRIM(LOWER($5)))
       )
       SELECT
         c.id,
