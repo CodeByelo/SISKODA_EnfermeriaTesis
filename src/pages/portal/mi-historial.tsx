@@ -60,10 +60,22 @@ export default function MiHistorial() {
         </section>
 
         <section className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-sm">
+          <div className="mb-6 rounded-[24px] border border-violet-100 bg-[linear-gradient(180deg,#faf7ff_0%,#ffffff_100%)] px-5 py-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-500">Informacion</p>
+            <p className="mt-3 text-sm leading-6 text-slate-600">
+              Aqui solo aparecen las consultas que el personal de enfermeria ya registro en tu expediente.
+              Si acabas de crear tu cuenta institucional y aun no ves movimientos, no es un error: tu historial se mostrara cuando existan atenciones cargadas a tu identidad.
+            </p>
+          </div>
           {loading ? (
             <p className="text-sm text-slate-500">Cargando historial...</p>
           ) : items.length === 0 ? (
-            <p className="text-sm text-slate-500">Aun no tienes consultas registradas.</p>
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-8">
+              <p className="text-base font-semibold text-slate-800">Aun no hay consultas visibles en tu portal.</p>
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                Esto puede pasar si todavia no te han registrado una atencion o si tu cuenta institucional fue creada antes de que se cargara el expediente.
+              </p>
+            </div>
           ) : (
             <div className="space-y-4">
               {items.map((item) => (

@@ -48,6 +48,10 @@ export default function RegistroPortal() {
           <p className="mt-3 text-sm text-violet-100 sm:text-base">
             Completa tus datos de acceso para enlazar tu identidad institucional.
           </p>
+          <div className="mt-5 rounded-2xl border border-white/10 bg-slate-950/25 px-4 py-4 text-sm leading-6 text-violet-100">
+            Este acceso es para estudiantes, profesores y personal que quieran consultar su propio perfil y su historial de atenciones.
+            Si aun no te han registrado una consulta, podras crear la cuenta primero y ver el historial cuando exista informacion cargada.
+          </div>
 
           {success ? (
             <div className="mt-6 rounded-2xl border border-emerald-300/30 bg-emerald-400/10 px-4 py-4 text-sm text-emerald-100">
@@ -60,7 +64,7 @@ export default function RegistroPortal() {
                 <input
                   value={formData.identifier}
                   onChange={(event) => setFormData((current) => ({ ...current, identifier: event.target.value }))}
-                  placeholder="Cedula, carnet o correo institucional"
+                  placeholder="Cedula, carnet, codigo o correo institucional"
                   className="h-12 w-full rounded-2xl border border-white/15 bg-slate-950/30 px-4 text-white outline-none"
                   required
                 />

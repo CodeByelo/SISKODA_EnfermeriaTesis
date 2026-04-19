@@ -109,6 +109,15 @@ export default function MiPerfil() {
               </article>
             </section>
 
+            <section className="rounded-[28px] border border-cyan-100 bg-[linear-gradient(180deg,#f8fdff_0%,#ffffff_100%)] p-6 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-600">Como funciona</p>
+              <h2 className="mt-3 text-2xl font-semibold text-slate-900">Acceso personal al historial</h2>
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
+                El area de enfermeria registra las consultas en el expediente clinico. Tu portal personal solo muestra esa informacion cuando ya existe una cuenta institucional vinculada a tu identidad.
+                Si todavia no ves atenciones en "Mi Historial", puede significar que aun no hay consultas registradas o que tu expediente sigue en proceso de vinculacion.
+              </p>
+            </section>
+
             <section className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-sm">
               <div className="grid gap-5 md:grid-cols-2">
                 <div>

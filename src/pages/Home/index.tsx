@@ -43,7 +43,7 @@ const descriptions: Record<string, string> = {
   Reportes: "Consulta metricas, tendencias y resumenes para la toma de decisiones.",
   Usuarios: "Administra cuentas internas, accesos y roles del sistema.",
   "Mi Perfil": "Consulta tus datos institucionales y el estado de tu cuenta personal.",
-  "Mi Historial": "Revisa tu historial personal de atenciones y seguimiento.",
+  "Mi Historial": "Revisa tus atenciones ya registradas por enfermeria desde tu portal personal.",
   Salir: "Cierra la sesion actual de forma segura.",
 };
 

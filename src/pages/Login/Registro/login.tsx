@@ -114,6 +114,10 @@ export default function Login() {
                   <p className="mt-2 text-sm font-medium text-slate-300 sm:text-base">
                     Ingresa tus credenciales para continuar
                   </p>
+                  <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-left text-sm leading-6 text-slate-200">
+                    El historial de estudiantes, profesores y personal no se consulta desde enfermeria.
+                    Si la persona aun no tiene acceso al sistema, primero debe crear su cuenta institucional y luego podra ver su propio historial en el portal.
+                  </div>
                 </div>
 
                 <form onSubmit={handleSubmit} className="mt-6 space-y-4 sm:mt-7">
@@ -166,7 +170,7 @@ export default function Login() {
                     onClick={() => navigate('/registro-portal')}
                     className="flex h-12 w-full items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-4 text-sm font-semibold text-white transition hover:bg-white/10"
                   >
-                    Crear cuenta institucional
+                    Crear cuenta institucional para ver mi historial
                   </button>
                 </form>
               </div>
