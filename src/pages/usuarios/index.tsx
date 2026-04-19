@@ -47,6 +47,8 @@ const roleTone: Record<string, string> = {
   personal: "bg-emerald-100 text-emerald-700 ring-emerald-200",
 };
 
+const HISTORY_PAGE_SIZE = 10;
+
 export default function Usuarios() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -60,6 +62,7 @@ export default function Usuarios() {
   const [historyQuery, setHistoryQuery] = useState("");
   const [historyType, setHistoryType] = useState("todos");
   const [historyDeletingId, setHistoryDeletingId] = useState<string | null>(null);
+  const [historyPage, setHistoryPage] = useState(1);
   const [error, setError] = useState("");
 
   const summary = useMemo(
@@ -254,6 +257,23 @@ export default function Usuarios() {
         .includes(query);
     });
   }, [history, historyQuery, historyType]);
+
+  const totalHistoryPages = Math.max(1, Math.ceil(filteredHistory.length / HISTORY_PAGE_SIZE));
+
+  const paginatedHistory = useMemo(() => {
+    const start = (historyPage - 1) * HISTORY_PAGE_SIZE;
+    return filteredHistory.slice(start, start + HISTORY_PAGE_SIZE);
+  }, [filteredHistory, historyPage]);
+
+  useEffect(() => {
+    setHistoryPage(1);
+  }, [historyQuery, historyType]);
+
+  useEffect(() => {
+    if (historyPage > totalHistoryPages) {
+      setHistoryPage(totalHistoryPages);
+    }
+  }, [historyPage, totalHistoryPages]);
 
   if (user?.role !== "admin") {
     return (
@@ -467,68 +487,90 @@ export default function Usuarios() {
                   No hay coincidencias con los filtros aplicados.
                 </div>
               ) : (
-                <div className="overflow-hidden rounded-[24px] border border-violet-100">
-                  <div className="max-h-[680px] overflow-auto">
-                    <table className="min-w-full text-left">
-                      <thead className="sticky top-0 z-10 bg-violet-50/95 backdrop-blur">
-                        <tr className="border-b border-violet-100 text-xs uppercase tracking-[0.18em] text-gray-500">
-                          <th className="px-4 py-3 font-semibold">Fecha</th>
-                          <th className="px-4 py-3 font-semibold">Tipo</th>
-                          <th className="px-4 py-3 font-semibold">Accion</th>
-                          <th className="px-4 py-3 font-semibold">Usuario</th>
-                          <th className="px-4 py-3 font-semibold">Paciente</th>
-                          <th className="px-4 py-3 font-semibold">Detalle</th>
-                          <th className="px-4 py-3 font-semibold text-right">Opciones</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white">
-                        {filteredHistory.map((item) => {
-                          const deleteKey = `${item.origen}:${item.referencia_id}`;
+                <div className="space-y-3">
+                  {paginatedHistory.map((item) => {
+                    const deleteKey = `${item.origen}:${item.referencia_id}`;
 
-                          return (
-                            <tr key={`${item.tipo}-${item.referencia_id}-${item.fecha}`} className="border-b border-gray-100 align-top text-sm">
-                              <td className="px-4 py-3 whitespace-nowrap text-gray-600">
+                    return (
+                      <article
+                        key={`${item.tipo}-${item.referencia_id}-${item.fecha}`}
+                        className="rounded-[22px] border border-violet-100 bg-[linear-gradient(180deg,#ffffff_0%,#faf7ff_100%)] px-4 py-4 shadow-[0_16px_30px_-28px_rgba(76,29,149,0.28)]"
+                      >
+                        <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                          <div className="min-w-0 flex-1 space-y-3">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-semibold text-violet-700 ring-1 ring-violet-200">
+                                {item.tipo}
+                              </span>
+                              <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600 ring-1 ring-gray-200">
                                 {new Date(item.fecha).toLocaleString("es-VE")}
-                              </td>
-                              <td className="px-4 py-3">
-                                <span className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-semibold text-violet-700 ring-1 ring-violet-200">
-                                  {item.tipo}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3 min-w-[220px]">
-                                <p className="font-semibold text-gray-900">{item.titulo}</p>
-                              </td>
-                              <td className="px-4 py-3 min-w-[220px] text-gray-700">
-                                <p className="font-medium text-gray-900">{item.actor_email}</p>
+                              </span>
+                            </div>
+
+                            <div className="grid gap-3 xl:grid-cols-[minmax(0,1.4fr)_minmax(220px,0.8fr)_minmax(220px,0.8fr)]">
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold text-gray-900">{item.titulo}</p>
+                                <p className="mt-1 break-words text-sm leading-6 text-gray-600">{item.detalle}</p>
+                              </div>
+                              <div className="rounded-2xl border border-violet-100 bg-violet-50/60 px-3 py-3">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-violet-500">Usuario</p>
+                                <p className="mt-2 break-all text-sm font-medium text-gray-900">{item.actor_email}</p>
                                 <p className="mt-1 text-xs uppercase tracking-[0.14em] text-gray-400">{item.actor_role}</p>
-                              </td>
-                              <td className="px-4 py-3 min-w-[200px] text-gray-700">
-                                <p className="font-medium text-gray-900">{item.paciente_nombre}</p>
-                                <p className="mt-1 text-xs text-gray-500">{item.paciente_codigo}</p>
-                              </td>
-                              <td className="px-4 py-3 min-w-[320px] text-gray-600">
-                                <p className="line-clamp-3 leading-6">{item.detalle}</p>
-                              </td>
-                              <td className="px-4 py-3 text-right">
-                                {item.eliminable ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => void deleteHistoryItem(item)}
-                                    disabled={historyDeletingId === deleteKey}
-                                    className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
-                                  >
-                                    {historyDeletingId === deleteKey ? "Eliminando..." : "Eliminar"}
-                                  </button>
-                                ) : (
-                                  <span className="text-xs text-gray-400">Desde su modulo</span>
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                              </div>
+                              <div className="rounded-2xl border border-violet-100 bg-violet-50/60 px-3 py-3">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-violet-500">Paciente</p>
+                                <p className="mt-2 break-words text-sm font-medium text-gray-900">{item.paciente_nombre}</p>
+                                <p className="mt-1 break-all text-xs text-gray-500">{item.paciente_codigo}</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="xl:pl-3">
+                            {item.eliminable ? (
+                              <button
+                                type="button"
+                                onClick={() => void deleteHistoryItem(item)}
+                                disabled={historyDeletingId === deleteKey}
+                                className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                {historyDeletingId === deleteKey ? "Eliminando..." : "Eliminar"}
+                              </button>
+                            ) : (
+                              <span className="inline-flex rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-400">
+                                Desde su modulo
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  })}
+
+                  {totalHistoryPages > 1 ? (
+                    <div className="flex flex-col gap-3 rounded-[22px] border border-violet-100 bg-violet-50/50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-sm text-gray-600">
+                        Pagina {historyPage} de {totalHistoryPages}
+                      </p>
+                      <div className="flex gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setHistoryPage((current) => Math.max(1, current - 1))}
+                          disabled={historyPage === 1}
+                          className="rounded-2xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Pagina anterior
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setHistoryPage((current) => Math.min(totalHistoryPages, current + 1))}
+                          disabled={historyPage === totalHistoryPages}
+                          className="rounded-2xl bg-violet-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Siguiente pagina
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               )}
             </div>
