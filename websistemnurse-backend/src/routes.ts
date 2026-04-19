@@ -187,22 +187,44 @@ router.post('/', async (req: AuthRequest, res) => {
           [nombreLimpiado]
         );
 
-        if (medResult.rows.length === 0) {
-          throw new Error(`Medicamento no encontrado: "${nombreLimpiado}"`);
+        let inventarioItemId = null;
+        let stock_actual = 0;
+
+        if (medResult.rows.length > 0) {
+          inventarioItemId = medResult.rows[0].id;
+          stock_actual = Number(medResult.rows[0].stock_actual);
+
+          if (stock_actual > 0) {
+            const stockResultante = stock_actual - 1;
+            await client.query(
+              'UPDATE inventario_items SET stock_actual = $1 WHERE id = $2',
+              [stockResultante, inventarioItemId]
+            );
+
+            await client.query(
+              `
+                INSERT INTO inventario_movimientos (
+                  inventario_item_id,
+                  tipo_movimiento,
+                  cantidad,
+                  stock_anterior,
+                  stock_resultante,
+                  motivo,
+                  referencia_consulta_id,
+                  registrado_por_user_id
+                ) VALUES ($1, 'consumo_consulta', 1, $2, $3, $4, $5, $6)
+              `,
+              [
+                inventarioItemId,
+                stock_actual,
+                stockResultante,
+                `Consumo por consulta ${consultaId}`,
+                consultaId,
+                req.user?.id ?? null,
+              ]
+            );
+          }
         }
-
-        const { id: inventarioItemId, stock_actual } = medResult.rows[0];
-
-        if (Number(stock_actual) <= 0) {
-          throw new Error(`No hay stock disponible para: "${nombreLimpiado}"`);
-        }
-
-        const stockResultante = Number(stock_actual) - 1;
-
-        await client.query(
-          'UPDATE inventario_items SET stock_actual = $1 WHERE id = $2',
-          [stockResultante, inventarioItemId]
-        );
 
         await client.query(
           `
@@ -214,29 +236,6 @@ router.post('/', async (req: AuthRequest, res) => {
             ) VALUES ($1, $2, $3, 1)
           `,
           [consultaId, inventarioItemId, nombreLimpiado]
-        );
-
-        await client.query(
-          `
-            INSERT INTO inventario_movimientos (
-              inventario_item_id,
-              tipo_movimiento,
-              cantidad,
-              stock_anterior,
-              stock_resultante,
-              motivo,
-              referencia_consulta_id,
-              registrado_por_user_id
-            ) VALUES ($1, 'consumo_consulta', 1, $2, $3, $4, $5, $6)
-          `,
-          [
-            inventarioItemId,
-            stock_actual,
-            stockResultante,
-            `Consumo por consulta ${consultaId}`,
-            consultaId,
-            req.user?.id ?? null,
-          ]
         );
       }
     }
