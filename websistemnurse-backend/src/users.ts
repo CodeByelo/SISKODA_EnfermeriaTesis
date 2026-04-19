@@ -302,7 +302,7 @@ router.delete('/history/:origen/:id', async (req: AuthRequest, res) => {
 
 router.patch('/:id/role', async (req: AuthRequest, res) => {
   const targetId = req.params.id;
-  const { role } = req.body as { role?: string };
+  const { role, email } = req.body as { role?: string; email?: string };
 
   if (!targetId) {
     return res.status(400).json({ error: 'ID de usuario invalido' });
@@ -359,7 +359,7 @@ router.patch('/:id/role', async (req: AuthRequest, res) => {
     
     if (personaId && email) {
       await pool.query(
-        'UPDATE personas SET email = $1 WHERE id = $2',
+        'UPDATE personas SET correo_institucional = $1 WHERE id = $2',
         [email, personaId]
       );
     }
