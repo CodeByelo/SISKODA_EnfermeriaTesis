@@ -127,7 +127,7 @@ router.post('/entrada', async (req: AuthRequest, res) => {
   try {
     await client.query('BEGIN');
     const current = await client.query(
-      'SELECT stock_actual FROM inventario_items WHERE id = $1::uuid FOR UPDATE',
+      'SELECT stock_actual FROM inventario_items WHERE id = $1 FOR UPDATE',
       [insumo_id]
     );
 
@@ -284,7 +284,7 @@ router.delete('/:id', async (req, res) => {
   }
 
   try {
-    const check = await pool.query('SELECT id, stock_actual FROM inventario_items WHERE id = $1::uuid', [id]);
+    const check = await pool.query('SELECT id, stock_actual FROM inventario_items WHERE id = $1', [id]);
 
     if (check.rowCount === 0) {
       return res.status(404).json({ error: 'Insumo no encontrado' });
@@ -294,7 +294,7 @@ router.delete('/:id', async (req, res) => {
       return res.status(400).json({ error: 'No se puede eliminar un insumo con stock > 0' });
     }
 
-    await pool.query('DELETE FROM inventario_items WHERE id = $1::uuid', [id]);
+    await pool.query('DELETE FROM inventario_items WHERE id = $1', [id]);
     res.status(204).send();
   } catch (err) {
     console.error('Error al eliminar insumo:', err);

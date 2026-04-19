@@ -48,7 +48,7 @@ router.patch('/:id/role', async (req: AuthRequest, res) => {
 
   try {
     const result = await pool.query(
-      'UPDATE usuarios SET role = $1::rol_usuario WHERE id = $2::uuid RETURNING id, email, role',
+      'UPDATE usuarios SET role = $1::rol_usuario WHERE id = $2 RETURNING id, email, role',
       [role, targetId]
     );
 
@@ -78,7 +78,7 @@ router.delete('/:id', async (req: AuthRequest, res) => {
     const result = await pool.query(
       `
         DELETE FROM usuarios
-        WHERE id = $1::uuid
+        WHERE id = $1
         RETURNING id
       `,
       [targetId]

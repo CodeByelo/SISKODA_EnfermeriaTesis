@@ -141,7 +141,7 @@ router.post('/', async (req: AuthRequest, res) => {
           diagnostico,
           notas_recomendacion,
           prioridad
-          ) VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6, $7::prioridad_consulta)
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7::prioridad_consulta)
         RETURNING id
       `,
       [
@@ -211,7 +211,7 @@ router.post('/', async (req: AuthRequest, res) => {
               motivo,
               referencia_consulta_id,
               registrado_por_user_id
-            ) VALUES ($1::uuid, 'consumo_consulta', 1, $2, $3, $4, $5::uuid, $6::uuid)
+            ) VALUES ($1, 'consumo_consulta', 1, $2, $3, $4, $5, $6)
           `,
           [
             inventarioItemId,
@@ -291,7 +291,7 @@ router.put('/:id', async (req, res) => {
           diagnostico = $3,
           notas_recomendacion = $4,
           prioridad = $5::prioridad_consulta
-        WHERE id = $6::uuid
+        WHERE id = $6
         RETURNING id, motivo, sintomas, diagnostico, notas_recomendacion as notas_recom, prioridad, creado_en
       `,
       [
@@ -316,7 +316,7 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    const result = await pool.query('DELETE FROM consultas WHERE id = $1::uuid RETURNING id', [id]);
+    const result = await pool.query('DELETE FROM consultas WHERE id = $1 RETURNING id', [id]);
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Consulta no encontrada' });
     }
