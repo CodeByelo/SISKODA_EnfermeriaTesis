@@ -107,11 +107,9 @@ router.post('/', async (req: AuthRequest, res) => {
       }
 
       if (!personaId) {
-        const newPersonaId = crypto.randomUUID();
         const personaResult = await client.query(
           `
             INSERT INTO personas (
-              id,
               tipo_miembro,
               codigo_institucional,
               nombres,
@@ -121,11 +119,10 @@ router.post('/', async (req: AuthRequest, res) => {
               carrera_depto,
               categoria,
               cargo
-            ) VALUES ($1, $2::tipo_miembro, $3, $4, $5, $6, $7, $8, $9, $10)
+            ) VALUES ($1::tipo_miembro, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING id
           `,
           [
-            newPersonaId,
             tipoMiembro,
             codigoInstitucional || null,
             nombre,
@@ -148,14 +145,13 @@ router.post('/', async (req: AuthRequest, res) => {
       if (existingExpediente.rowCount && existingExpediente.rows[0]) {
         expedienteId = existingExpediente.rows[0].id;
       } else {
-        const newExpedienteId = crypto.randomUUID();
         const expedienteResult = await client.query(
           `
-            INSERT INTO expedientes (id, persona_id)
-            VALUES ($1, $2)
+            INSERT INTO expedientes (persona_id)
+            VALUES ($1)
             RETURNING id
           `,
-          [newExpedienteId, personaId]
+          [personaId]
         );
 
         expedienteId = expedienteResult.rows[0].id;
