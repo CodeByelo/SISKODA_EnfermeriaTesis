@@ -53,7 +53,7 @@ router.get('/history', async (_req, res) => {
             FROM consulta_medicamentos cm
             WHERE cm.consulta_id = c.id
           ), 'Sin medicamentos') as detalle,
-          FALSE as eliminable
+          TRUE as eliminable
         FROM consultas c
         INNER JOIN expedientes e ON e.id = c.expediente_id
         INNER JOIN personas paciente ON paciente.id = e.persona_id
@@ -96,7 +96,7 @@ router.get('/history', async (_req, res) => {
             COALESCE(im.stock_resultante::text, '0'),
             CASE WHEN im.motivo IS NOT NULL AND im.motivo <> '' THEN CONCAT(' | Motivo: ', im.motivo) ELSE '' END
           ) as detalle,
-          FALSE as eliminable
+          CASE WHEN im.referencia_consulta_id IS NULL THEN TRUE ELSE FALSE END as eliminable
         FROM inventario_movimientos im
         INNER JOIN inventario_items ii ON ii.id = im.inventario_item_id
         LEFT JOIN usuarios actor ON actor.id = im.registrado_por_user_id
@@ -153,24 +153,149 @@ router.get('/history', async (_req, res) => {
 router.delete('/history/:origen/:id', async (req: AuthRequest, res) => {
   const { origen, id } = req.params;
 
-  if (origen !== 'auditoria_accesos') {
-    return res.status(400).json({ error: 'Solo se pueden eliminar entradas de auditoria desde esta vista' });
-  }
-
   if (!id) {
     return res.status(400).json({ error: 'ID invalido' });
   }
 
   try {
-    const result = await pool.query('DELETE FROM auditoria_accesos WHERE id = $1 RETURNING id', [id]);
+    if (origen === 'auditoria_accesos') {
+      const result = await pool.query('DELETE FROM auditoria_accesos WHERE id = $1 RETURNING id', [id]);
 
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Registro no encontrado' });
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: 'Registro no encontrado' });
+      }
+
+      return res.status(204).send();
     }
 
-    res.status(204).send();
+    if (origen === 'consultas') {
+      const client = await pool.connect();
+
+      try {
+        await client.query('BEGIN');
+
+        const consulta = await client.query('SELECT id FROM consultas WHERE id = $1', [id]);
+        if (consulta.rowCount === 0) {
+          await client.query('ROLLBACK');
+          return res.status(404).json({ error: 'Consulta no encontrada' });
+        }
+
+        const medicamentos = await client.query(
+          `
+            SELECT inventario_item_id, cantidad
+            FROM consulta_medicamentos
+            WHERE consulta_id = $1
+              AND inventario_item_id IS NOT NULL
+          `,
+          [id]
+        );
+
+        for (const row of medicamentos.rows) {
+          await client.query(
+            `
+              UPDATE inventario_items
+              SET stock_actual = COALESCE(stock_actual, 0) + $1
+              WHERE id = $2
+            `,
+            [Number(row.cantidad ?? 0), row.inventario_item_id]
+          );
+        }
+
+        await client.query('DELETE FROM inventario_movimientos WHERE referencia_consulta_id = $1', [id]);
+        await client.query('DELETE FROM consulta_medicamentos WHERE consulta_id = $1', [id]);
+        await client.query('DELETE FROM consultas WHERE id = $1', [id]);
+        await client.query('COMMIT');
+
+        return res.status(204).send();
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+      } finally {
+        client.release();
+      }
+    }
+
+    if (origen === 'inventario_movimientos') {
+      const client = await pool.connect();
+
+      try {
+        await client.query('BEGIN');
+
+        const result = await client.query(
+          `
+            SELECT
+              id,
+              inventario_item_id,
+              tipo_movimiento,
+              cantidad,
+              referencia_consulta_id
+            FROM inventario_movimientos
+            WHERE id = $1
+            FOR UPDATE
+          `,
+          [id]
+        );
+
+        if (result.rowCount === 0) {
+          await client.query('ROLLBACK');
+          return res.status(404).json({ error: 'Movimiento no encontrado' });
+        }
+
+        const movement = result.rows[0];
+
+        if (movement.referencia_consulta_id) {
+          await client.query('ROLLBACK');
+          return res.status(400).json({ error: 'Este movimiento proviene de una consulta. Elimina la consulta para retirarlo.' });
+        }
+
+        const stockResult = await client.query(
+          'SELECT stock_actual FROM inventario_items WHERE id = $1 FOR UPDATE',
+          [movement.inventario_item_id]
+        );
+
+        if (stockResult.rowCount === 0) {
+          await client.query('ROLLBACK');
+          return res.status(404).json({ error: 'Insumo asociado no encontrado' });
+        }
+
+        const currentStock = Number(stockResult.rows[0].stock_actual ?? 0);
+        const cantidad = Number(movement.cantidad ?? 0);
+        let nextStock = currentStock;
+
+        if (movement.tipo_movimiento === 'entrada') {
+          nextStock = currentStock - cantidad;
+        } else if (movement.tipo_movimiento === 'salida') {
+          nextStock = currentStock + cantidad;
+        } else {
+          await client.query('ROLLBACK');
+          return res.status(400).json({ error: 'Este tipo de movimiento no se puede eliminar desde esta vista' });
+        }
+
+        if (nextStock < 0) {
+          await client.query('ROLLBACK');
+          return res.status(400).json({ error: 'No se puede eliminar este movimiento porque dejaria el stock en negativo' });
+        }
+
+        await client.query(
+          'UPDATE inventario_items SET stock_actual = $1 WHERE id = $2',
+          [nextStock, movement.inventario_item_id]
+        );
+
+        await client.query('DELETE FROM inventario_movimientos WHERE id = $1', [id]);
+        await client.query('COMMIT');
+
+        return res.status(204).send();
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+      } finally {
+        client.release();
+      }
+    }
+
+    return res.status(400).json({ error: 'Origen no soportado para eliminar' });
   } catch (error) {
-    console.error('Error eliminando registro de auditoria:', error);
+    console.error('Error eliminando registro de historial:', error);
     res.status(500).json({ error: 'No se pudo eliminar el registro' });
   }
 });
