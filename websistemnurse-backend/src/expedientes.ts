@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import pool from './db';
+import type { AuthRequest } from './auth';
+import { writeAuditLog } from './audit';
 
 const router = Router();
 
@@ -69,7 +71,7 @@ router.get('/', async (_req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', async (req: AuthRequest, res) => {
   const {
     tipo_paciente,
     carnet_uni,
@@ -145,6 +147,20 @@ router.post('/', async (req, res) => {
       [person.rows[0].id]
     );
 
+    await writeAuditLog({
+      userId: req.user?.id ?? null,
+      personaId: person.rows[0].id,
+      accion: 'expediente_creado',
+      modulo: 'expedientes',
+      recurso: String(expediente.rows[0].id),
+      metadata: {
+        tipo_paciente: mapTipoMiembroToPaciente(tipoMiembro),
+        nombre: person.rows[0].nombres,
+        apellido: person.rows[0].apellidos,
+        codigo_institucional: code || null,
+      },
+    });
+
     res.status(201).json({
       id: expediente.rows[0].id,
       tipo_paciente: mapTipoMiembroToPaciente(tipoMiembro),
@@ -211,17 +227,43 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', async (req: AuthRequest, res) => {
   const { id } = req.params;
   if (!id) {
     return res.status(400).json({ error: 'ID invalido' });
   }
 
   try {
+    const beforeDelete = await pool.query(
+      `
+        SELECT e.id, e.persona_id, p.nombres, p.apellidos, p.codigo_institucional
+        FROM expedientes e
+        INNER JOIN personas p ON p.id = e.persona_id
+        WHERE e.id = $1
+      `,
+      [id]
+    );
+
     const result = await pool.query('DELETE FROM expedientes WHERE id = $1 RETURNING id', [id]);
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Expediente no encontrado' });
     }
+
+    if (beforeDelete.rowCount && beforeDelete.rows[0]) {
+      await writeAuditLog({
+        userId: req.user?.id ?? null,
+        personaId: beforeDelete.rows[0].persona_id,
+        accion: 'expediente_eliminado',
+        modulo: 'expedientes',
+        recurso: String(id),
+        metadata: {
+          nombre: beforeDelete.rows[0].nombres,
+          apellido: beforeDelete.rows[0].apellidos,
+          codigo_institucional: beforeDelete.rows[0].codigo_institucional ?? null,
+        },
+      });
+    }
+
     res.status(204).send();
   } catch (err) {
     console.error('Error al eliminar expediente:', err);

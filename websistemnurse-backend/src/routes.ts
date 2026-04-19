@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import pool from './db';
 import type { AuthRequest } from './auth';
+import { writeAuditLog } from './audit';
 
 const router = Router();
 
@@ -18,6 +19,21 @@ const resolvePrioridad = (prioridad: unknown) => {
   if (['alta', 'high'].includes(normalized)) return 'alta';
   if (['critica', 'crítica', 'urgent', 'urgente'].includes(normalized)) return 'critica';
   return 'media';
+};
+
+const serializeMedicamentos = (medicamentos: unknown) => {
+  if (typeof medicamentos === 'string') {
+    return medicamentos;
+  }
+
+  if (Array.isArray(medicamentos)) {
+    return medicamentos
+      .map((item) => String(item).trim())
+      .filter(Boolean)
+      .join('\n');
+  }
+
+  return '';
 };
 
 router.post('/', async (req: AuthRequest, res) => {
@@ -226,6 +242,18 @@ router.post('/', async (req: AuthRequest, res) => {
     }
 
     await client.query('COMMIT');
+    await writeAuditLog({
+      userId: req.user?.id ?? null,
+      accion: 'consulta_creada',
+      modulo: 'consultas',
+      recurso: String(consultaId),
+      metadata: {
+        expediente_id: expedienteId,
+        motivo,
+        prioridad: resolvePrioridad(prioridad),
+        medicamentos: serializeMedicamentos(medicamentos),
+      },
+    });
     res.status(201).json({ message: 'Consulta creada exitosamente', id: consultaId });
   } catch (err: unknown) {
     await client.query('ROLLBACK');

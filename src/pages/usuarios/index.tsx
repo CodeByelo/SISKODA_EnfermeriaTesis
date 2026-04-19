@@ -11,6 +11,18 @@ type UserRecord = {
   role: string;
 };
 
+type HistoryRecord = {
+  tipo: string;
+  referencia_id: string;
+  fecha: string;
+  actor_email: string;
+  actor_role: string;
+  paciente_nombre: string;
+  paciente_codigo: string;
+  titulo: string;
+  detalle: string;
+};
+
 const roleOptions = [
   { value: "admin", label: "Administrador" },
   { value: "enfermeria", label: "Enfermería" },
@@ -39,8 +51,10 @@ export default function Usuarios() {
   const { notify, confirm } = useNotifications();
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [history, setHistory] = useState<HistoryRecord[]>([]);
   const [error, setError] = useState("");
 
   const summary = useMemo(
@@ -72,6 +86,25 @@ export default function Usuarios() {
       setError("No se pudieron cargar los usuarios");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchHistory = async () => {
+    setHistoryLoading(true);
+
+    try {
+      const response = await authFetch("/api/users/history");
+      const data = (await response.json()) as HistoryRecord[] | { error?: string };
+
+      if (!response.ok || !Array.isArray(data)) {
+        return;
+      }
+
+      setHistory(data);
+    } catch (historyError) {
+      console.error(historyError);
+    } finally {
+      setHistoryLoading(false);
     }
   };
 
@@ -143,6 +176,7 @@ export default function Usuarios() {
 
   useEffect(() => {
     void fetchUsers();
+    void fetchHistory();
   }, []);
 
   if (user?.role !== "admin") {
@@ -222,7 +256,10 @@ export default function Usuarios() {
               <h2 className="mt-2 text-2xl font-semibold text-gray-900">Asignación de roles</h2>
             </div>
             <button
-              onClick={() => void fetchUsers()}
+              onClick={() => {
+                void fetchUsers();
+                void fetchHistory();
+              }}
               className="inline-flex items-center justify-center rounded-2xl border border-violet-200 bg-violet-50 px-4 py-2 text-sm font-semibold text-violet-700 transition hover:border-violet-300 hover:bg-violet-100"
             >
               Actualizar listado
@@ -293,6 +330,64 @@ export default function Usuarios() {
                       <TrashIcon className="h-4 w-4" />
                       {deletingId === item.id ? "Eliminando..." : "Eliminar"}
                     </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="rounded-[28px] border border-violet-100 bg-white p-6 shadow-[0_20px_50px_-40px_rgba(76,29,149,0.35)]">
+          <div className="flex flex-col gap-4 border-b border-gray-100 pb-5 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-500">
+                Historial operativo
+              </p>
+              <h2 className="mt-2 text-2xl font-semibold text-gray-900">Trazabilidad de acciones</h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-500">
+                Aqui puedes ver quien registro pacientes, quien creo consultas, que medicamento se entrego en cada consulta y quien hizo entradas o salidas de inventario.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-violet-100 bg-violet-50/70 px-4 py-3 text-sm font-semibold text-violet-700">
+              {history.length} eventos recientes
+            </div>
+          </div>
+
+          {historyLoading ? (
+            <div className="flex min-h-40 items-center justify-center text-sm text-gray-500">
+              Cargando historial...
+            </div>
+          ) : history.length === 0 ? (
+            <div className="mt-6 rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-6 py-10 text-center text-sm text-gray-500">
+              Aun no hay eventos visibles en el historial operativo.
+            </div>
+          ) : (
+            <div className="mt-6 grid gap-4">
+              {history.map((item) => (
+                <article
+                  key={`${item.tipo}-${item.referencia_id}-${item.fecha}`}
+                  className="rounded-3xl border border-gray-100 bg-[linear-gradient(180deg,#ffffff_0%,#faf7ff_100%)] p-5 shadow-[0_18px_35px_-32px_rgba(76,29,149,0.45)]"
+                >
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-700 ring-1 ring-violet-200">
+                          {item.tipo}
+                        </span>
+                        <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600 ring-1 ring-gray-200">
+                          {new Date(item.fecha).toLocaleString("es-VE")}
+                        </span>
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900">{item.titulo}</h3>
+                      <p className="text-sm leading-6 text-gray-600">{item.detalle}</p>
+                    </div>
+
+                    <div className="grid gap-3 rounded-2xl border border-violet-100 bg-violet-50/60 px-4 py-4 text-sm text-gray-700 lg:min-w-[320px]">
+                      <p><span className="font-semibold text-gray-900">Usuario:</span> {item.actor_email}</p>
+                      <p><span className="font-semibold text-gray-900">Rol:</span> {item.actor_role}</p>
+                      <p><span className="font-semibold text-gray-900">Paciente:</span> {item.paciente_nombre}</p>
+                      <p><span className="font-semibold text-gray-900">Identificador:</span> {item.paciente_codigo}</p>
+                    </div>
                   </div>
                 </article>
               ))}

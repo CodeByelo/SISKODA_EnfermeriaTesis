@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import pool from './db';
 import type { AuthRequest } from './auth';
+import { writeAuditLog } from './audit';
 
 const router = Router();
 
@@ -52,7 +53,7 @@ router.get('/medicamentos', async (_req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', async (req: AuthRequest, res) => {
   const {
     nombre,
     descripcion,
@@ -102,6 +103,19 @@ router.post('/', async (req, res) => {
         [result.rows[0].id, lote || null, fecha_vencimiento || null]
       );
     }
+
+    await writeAuditLog({
+      userId: req.user?.id ?? null,
+      accion: 'insumo_creado',
+      modulo: 'inventario',
+      recurso: String(result.rows[0].id),
+      metadata: {
+        nombre: result.rows[0].nombre,
+        categoria: result.rows[0].categoria ?? null,
+        unidad_medida: result.rows[0].unidad_medida,
+        stock_minimo: result.rows[0].stock_minimo,
+      },
+    });
 
     res.status(201).json(result.rows[0]);
   } catch (err: unknown) {
@@ -285,6 +299,7 @@ router.delete('/:id', async (req, res) => {
 
   try {
     const check = await pool.query('SELECT id, stock_actual FROM inventario_items WHERE id = $1', [id]);
+    const itemInfo = await pool.query('SELECT nombre, categoria FROM inventario_items WHERE id = $1', [id]);
 
     if (check.rowCount === 0) {
       return res.status(404).json({ error: 'Insumo no encontrado' });
@@ -295,6 +310,20 @@ router.delete('/:id', async (req, res) => {
     }
 
     await pool.query('DELETE FROM inventario_items WHERE id = $1', [id]);
+
+    if (itemInfo.rowCount && itemInfo.rows[0]) {
+      await writeAuditLog({
+        userId: (req as AuthRequest).user?.id ?? null,
+        accion: 'insumo_eliminado',
+        modulo: 'inventario',
+        recurso: String(id),
+        metadata: {
+          nombre: itemInfo.rows[0].nombre,
+          categoria: itemInfo.rows[0].categoria ?? null,
+        },
+      });
+    }
+
     res.status(204).send();
   } catch (err) {
     console.error('Error al eliminar insumo:', err);
