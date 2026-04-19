@@ -317,25 +317,64 @@ router.patch('/:id/role', async (req: AuthRequest, res) => {
   }
 
   try {
-    const previous = await pool.query('SELECT id, email, role FROM usuarios WHERE id = $1', [targetId]);
+    const previous = await pool.query('SELECT id, email, role, persona_id FROM usuarios WHERE id = $1', [targetId]);
+    if (previous.rowCount === 0) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    const personaId = previous.rows[0].persona_id;
+    const updates = [];
+    const values = [];
+    let paramCount = 1;
+
+    if (role) {
+      updates.push(`role = $${paramCount}::rol_usuario`);
+      values.push(role);
+      paramCount++;
+    }
+
+    if (email) {
+      updates.push(`email = $${paramCount}`);
+      values.push(email);
+      paramCount++;
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No hay datos para actualizar' });
+    }
+
+    values.push(targetId);
     const result = await pool.query(
-      'UPDATE usuarios SET role = $1::rol_usuario WHERE id = $2 RETURNING id, email, role',
-      [role, targetId]
+      `UPDATE usuarios SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING id, email, role`,
+      values
     );
 
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
+    const portalRoles = ['estudiante', 'profesor', 'personal'];
+    if (personaId && role && portalRoles.includes(role)) {
+      await pool.query(
+        'UPDATE personas SET tipo_miembro = $1::tipo_miembro WHERE id = $2',
+        [role, personaId]
+      );
+    }
+    
+    if (personaId && email) {
+      await pool.query(
+        'UPDATE personas SET email = $1 WHERE id = $2',
+        [email, personaId]
+      );
     }
 
     await writeAuditLog({
       userId: req.user?.id ?? null,
-      accion: 'rol_actualizado',
+      accion: 'usuario_actualizado',
       modulo: 'usuarios',
       recurso: String(targetId),
       metadata: {
         usuario_email: result.rows[0].email,
         rol_anterior: previous.rows[0]?.role ?? null,
-        rol_nuevo: role,
+        rol_nuevo: role ?? previous.rows[0]?.role,
+        email_anterior: previous.rows[0]?.email,
+        email_nuevo: email ?? previous.rows[0]?.email,
       },
     });
 

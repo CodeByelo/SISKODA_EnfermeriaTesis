@@ -45,27 +45,11 @@ router.get('/me/profile', async (req: AuthRequest, res) => {
       [req.user.id]
     );
 
-    const profile = result.rows[0];
-
-    // Sincronización de roles: si el rol de usuario no coincide con el tipo de miembro, lo actualizamos.
-    const roleMap: Record<string, string> = {
-      estudiante: 'estudiante',
-      profesor: 'profesor',
-      personal: 'personal',
-      interno: 'personal',
-    };
-
-    const correctRole = roleMap[profile.tipo_miembro] || 'personal';
-    if (profile.role !== correctRole) {
-      try {
-        await pool.query('UPDATE usuarios SET role = $1::rol_usuario WHERE id = $2', [correctRole, profile.user_id]);
-        profile.role = correctRole; // Actualizar en el objeto de respuesta
-      } catch (err) {
-        console.error('Error sincronizando rol de usuario:', err);
-      }
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
     }
 
-    res.json(profile);
+    res.json(result.rows[0]);
   } catch (error) {
     console.error('Error obteniendo perfil del portal:', error);
     res.status(500).json({ error: 'No se pudo cargar el perfil' });
