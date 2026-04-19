@@ -110,17 +110,25 @@ router.post('/', async (req: AuthRequest, res) => {
         personaId = personaResult.rows[0].id;
       }
 
-      const expedienteResult = await client.query(
-        `
-          INSERT INTO expedientes (persona_id)
-          VALUES ($1)
-          ON CONFLICT (persona_id) DO UPDATE SET persona_id = EXCLUDED.persona_id
-          RETURNING id
-        `,
+      const existingExpediente = await client.query(
+        'SELECT id FROM expedientes WHERE persona_id = $1 LIMIT 1',
         [personaId]
       );
 
-      expedienteId = expedienteResult.rows[0].id;
+      if (existingExpediente.rowCount && existingExpediente.rows[0]) {
+        expedienteId = existingExpediente.rows[0].id;
+      } else {
+        const expedienteResult = await client.query(
+          `
+            INSERT INTO expedientes (persona_id)
+            VALUES ($1)
+            RETURNING id
+          `,
+          [personaId]
+        );
+
+        expedienteId = expedienteResult.rows[0].id;
+      }
     }
 
     const consultaResult = await client.query(
