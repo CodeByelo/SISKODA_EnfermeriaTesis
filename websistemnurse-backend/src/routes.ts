@@ -95,6 +95,16 @@ router.post('/', async (req: AuthRequest, res) => {
         }
       }
 
+      if (!personaId && nombre && apellido) {
+        const existingName = await client.query(
+          'SELECT id FROM personas WHERE LOWER(nombres) = LOWER($1) AND LOWER(apellidos) = LOWER($2) LIMIT 1',
+          [nombre.trim(), apellido.trim()]
+        );
+        if (existingName.rowCount && existingName.rows[0]) {
+          personaId = existingName.rows[0].id;
+        }
+      }
+
       if (!personaId) {
         const personaResult = await client.query(
           `

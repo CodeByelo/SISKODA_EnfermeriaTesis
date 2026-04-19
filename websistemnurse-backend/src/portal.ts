@@ -61,9 +61,9 @@ router.get('/me/history', async (req: AuthRequest, res) => {
     return res.status(401).json({ error: 'Usuario no autenticado' });
   }
 
-  const personaId = req.user.personaId;
+  const personaIdFromToken = req.user.personaId;
   const { persona_id: queryPersonaId } = req.query;
-  const targetPersonaId = queryPersonaId ? String(queryPersonaId) : personaId;
+  const targetPersonaId = queryPersonaId ? String(queryPersonaId) : personaIdFromToken;
 
   if (!targetPersonaId) {
     console.error('History Error: No targetPersonaId found in token or query');
@@ -71,17 +71,19 @@ router.get('/me/history', async (req: AuthRequest, res) => {
   }
 
   try {
-    console.log(`Fetching history for persona: ${targetPersonaId}`);
+    // Primero obtenemos los datos de la persona para usar nombres como fallback
+    const personInfo = await pool.query('SELECT nombres, apellidos, cedula, codigo_institucional FROM personas WHERE id::text = $1', [targetPersonaId]);
+    const p = personInfo.rows[0];
     
-    // Búsqueda multi-criterio para asegurar que encontramos el historial 
-    // sin importar si hay desajustes de IDs planos vs UUIDs
+    console.log(`Fetching history for persona: ${targetPersonaId} (${p?.nombres} ${p?.apellidos})`);
+    
     const historyQuery = `
-      WITH target_persona AS (
+      WITH target_personas AS (
         SELECT id FROM personas 
         WHERE id::text = $1 
-           OR cedula = $1 
-           OR codigo_institucional = $1
-        LIMIT 1
+           OR (cedula IS NOT NULL AND cedula = $2)
+           OR (codigo_institucional IS NOT NULL AND codigo_institucional = $3)
+           OR (LOWER(nombres) = LOWER($4) AND LOWER(apellidos) = LOWER($5))
       )
       SELECT
         c.id,
@@ -101,14 +103,21 @@ router.get('/me/history', async (req: AuthRequest, res) => {
         p.nombres,
         p.apellidos,
         p.tipo_miembro
-      FROM target_persona tp
-      JOIN personas p ON p.id = tp.id
+      FROM personas p
+      JOIN target_personas tp ON tp.id = p.id
       JOIN expedientes e ON e.persona_id = p.id
       JOIN consultas c ON c.expediente_id = e.id OR c.expediente_id::text = e.id::text
       ORDER BY c.creado_en DESC
     `;
 
-    const result = await pool.query(historyQuery, [targetPersonaId]);
+    const result = await pool.query(historyQuery, [
+      targetPersonaId, 
+      p?.cedula || 'N/A', 
+      p?.codigo_institucional || 'N/A',
+      p?.nombres || '',
+      p?.apellidos || ''
+    ]);
+    
     console.log(`Found ${result.rows.length} history items for persona search: ${targetPersonaId}`);
     res.json(result.rows);
   } catch (error) {
