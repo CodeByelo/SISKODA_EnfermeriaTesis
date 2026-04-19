@@ -33,6 +33,8 @@ router.get('/', async (req, res) => {
       return res.json(rows.rows ?? []);
     }
 
+    const timezone = process.env.APP_TIMEZONE || 'America/Caracas';
+
     const rows = await pool.query(`
       SELECT
         c.id,
@@ -41,13 +43,13 @@ router.get('/', async (req, res) => {
         COALESCE(p.codigo_institucional, p.cedula) as carnet_uni,
         c.motivo,
         c.prioridad,
-        TO_CHAR(c.creado_en, 'HH12:MI AM') AS hora
+        TO_CHAR(COALESCE(c.fecha_consulta, c.creado_en) AT TIME ZONE $1, 'HH12:MI AM') AS hora
       FROM consultas c
       INNER JOIN expedientes e ON c.expediente_id = e.id
       INNER JOIN personas p ON e.persona_id = p.id
-      WHERE c.creado_en::date = CURRENT_DATE
-      ORDER BY c.creado_en DESC
-    `);
+      WHERE (COALESCE(c.fecha_consulta, c.creado_en) AT TIME ZONE $1)::date = (NOW() AT TIME ZONE $1)::date
+      ORDER BY COALESCE(c.fecha_consulta, c.creado_en) DESC
+    `, [timezone]);
 
     res.json(rows.rows ?? []);
   } catch (err) {

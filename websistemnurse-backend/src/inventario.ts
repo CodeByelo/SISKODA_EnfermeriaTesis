@@ -105,8 +105,8 @@ router.post('/', async (req, res) => {
 
     res.status(201).json(result.rows[0]);
   } catch (err: unknown) {
-    const error = err instanceof Error ? err : new Error('Error desconocido');
-    if (error.message.includes('unique constraint')) {
+    const error = err as { code?: string };
+    if (error.code === '23505') {
       return res.status(409).json({ error: 'Ya existe un insumo con ese nombre' });
     }
     console.error('Error al crear insumo:', err);
@@ -115,9 +115,10 @@ router.post('/', async (req, res) => {
 });
 
 router.post('/entrada', async (req: AuthRequest, res) => {
-  const { insumo_id, cantidad, lote, fecha_vencimiento } = req.body;
+  const { insumo_id, cantidad, lote, fecha_vencimiento, notas } = req.body;
+  const cantidadNum = Number(cantidad);
 
-  if (!insumo_id || !cantidad || cantidad <= 0) {
+  if (!insumo_id || !Number.isFinite(cantidadNum) || cantidadNum <= 0) {
     return res.status(400).json({ error: 'Insumo y cantidad valida son obligatorios' });
   }
 
@@ -136,7 +137,6 @@ router.post('/entrada', async (req: AuthRequest, res) => {
     }
 
     const stockAnterior = Number(current.rows[0].stock_actual ?? 0);
-    const cantidadNum = Number(cantidad);
     const stockResultante = stockAnterior + cantidadNum;
 
     const result = await client.query(
@@ -185,7 +185,7 @@ router.post('/entrada', async (req: AuthRequest, res) => {
         cantidadNum,
         stockAnterior,
         stockResultante,
-        'Entrada manual de inventario',
+        typeof notas === 'string' && notas.trim() ? notas.trim() : 'Entrada manual de inventario',
         req.user?.id ?? null,
       ]
     );
@@ -202,13 +202,13 @@ router.post('/entrada', async (req: AuthRequest, res) => {
 });
 
 router.post('/salida', async (req: AuthRequest, res) => {
-  const { insumo_id, cantidad } = req.body;
+  const { insumo_id, cantidad, motivo, notas } = req.body;
+  const cantidadNum = Number(cantidad);
 
-  if (!insumo_id || !cantidad || cantidad <= 0) {
+  if (!insumo_id || !Number.isFinite(cantidadNum) || cantidadNum <= 0) {
     return res.status(400).json({ error: 'Insumo y cantidad valida son obligatorios' });
   }
 
-  const cantidadNum = Number(cantidad);
   const client = await pool.connect();
 
   try {
@@ -259,7 +259,9 @@ router.post('/salida', async (req: AuthRequest, res) => {
         cantidadNum,
         stockActual,
         stockResultante,
-        'Salida manual de inventario',
+        [motivo, notas]
+          .filter((value) => typeof value === 'string' && value.trim())
+          .join(' - ') || 'Salida manual de inventario',
         req.user?.id ?? null,
       ]
     );

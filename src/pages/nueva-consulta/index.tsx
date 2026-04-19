@@ -10,7 +10,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { useNotifications } from "../../contexts/notification-context";
 import api from "../../services/api";
-import { authFetch } from "../../lib/auth";
+import { authFetch, setCachedJson } from "../../lib/auth";
 import type { ConsultaForm } from "./types";
 
 const formVacio: ConsultaForm = {
@@ -174,6 +174,8 @@ export default function NuevaConsulta() {
         frecuencia_cardiaca: undefined,
       });
 
+      setCachedJson("consultas-hoy", [], 0);
+
       notify({
         tone: "success",
         title: "Consulta guardada",
@@ -182,10 +184,18 @@ export default function NuevaConsulta() {
       nav("/consultas-hoy");
     } catch (error) {
       console.error("Error al enviar:", error);
+      const message =
+        typeof error === "object" &&
+        error !== null &&
+        "response" in error &&
+        typeof (error as { response?: { data?: { error?: string } } }).response?.data?.error === "string"
+          ? (error as { response?: { data?: { error?: string } } }).response?.data?.error ?? "Revisa los datos e intenta nuevamente."
+          : "Revisa los datos e intenta nuevamente.";
+
       notify({
         tone: "error",
         title: "No se pudo guardar",
-        message: "Revisa los datos e intenta nuevamente.",
+        message,
       });
     }
   };
@@ -340,7 +350,7 @@ export default function NuevaConsulta() {
                       <Campo label="Carrera">
                         <input name="carrera" value={form.carrera} onChange={handleChange} className={inputClass} disabled={!!paciente_id} />
                       </Campo>
-                      <Campo label="Semestre o ano">
+                      <Campo label="Trimestre">
                         <input name="semestre_anio" value={form.semestre_anio} onChange={handleChange} className={inputClass} />
                       </Campo>
                     </>

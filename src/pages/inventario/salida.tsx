@@ -35,7 +35,7 @@ export default function SalidaInventario() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setForm((prev) => ({ ...prev, [name]: name === 'cantidad' ? Number(value) : value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -125,7 +125,7 @@ export default function SalidaInventario() {
                   className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
                   required
                 >
-                  <option value="0">Seleccione un insumo</option>
+                  <option value="">Seleccione un insumo</option>
                   {insumos.map((i) => (
                     <option key={i.id} value={i.id}>
                       {i.nombre} ({i.stock_actual} {i.unidad_medida})

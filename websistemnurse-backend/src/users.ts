@@ -63,4 +63,36 @@ router.patch('/:id/role', async (req: AuthRequest, res) => {
   }
 });
 
+router.delete('/:id', async (req: AuthRequest, res) => {
+  const targetId = req.params.id;
+
+  if (!targetId) {
+    return res.status(400).json({ error: 'ID de usuario invalido' });
+  }
+
+  if (req.user?.id === targetId) {
+    return res.status(400).json({ error: 'No puedes eliminar tu propia cuenta desde esta pantalla' });
+  }
+
+  try {
+    const result = await pool.query(
+      `
+        DELETE FROM usuarios
+        WHERE id = $1::uuid
+        RETURNING id
+      `,
+      [targetId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    res.status(204).send();
+  } catch (error) {
+    console.error('Error eliminando usuario:', error);
+    res.status(500).json({ error: 'No se pudo eliminar el usuario' });
+  }
+});
+
 export default router;

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeftIcon, ShieldCheckIcon, UserGroupIcon } from "@heroicons/react/24/outline";
+import { ArrowLeftIcon, ShieldCheckIcon, TrashIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
 import { authFetch } from "../../lib/auth";
 import { useAuth } from "../../contexts/auth-context";
@@ -38,6 +38,7 @@ export default function Usuarios() {
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   const summary = useMemo(
@@ -98,6 +99,34 @@ export default function Usuarios() {
       setError("No se pudo actualizar el rol");
     } finally {
       setSavingId(null);
+    }
+  };
+
+  const deleteUser = async (id: string, email: string) => {
+    if (!window.confirm(`Se eliminara la cuenta ${email}. Esta accion no se puede deshacer.`)) {
+      return;
+    }
+
+    setDeletingId(id);
+    setError("");
+
+    try {
+      const response = await authFetch(`/api/users/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const data = (await response.json()) as { error?: string };
+        setError(data.error ?? "No se pudo eliminar el usuario");
+        return;
+      }
+
+      setUsers((current) => current.filter((item) => item.id !== id));
+    } catch (deleteError) {
+      console.error(deleteError);
+      setError("No se pudo eliminar el usuario");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -234,7 +263,7 @@ export default function Usuarios() {
                     </label>
                     <select
                       value={item.role}
-                      disabled={savingId === item.id}
+                      disabled={savingId === item.id || deletingId === item.id}
                       onChange={(event) => void updateRole(item.id, event.target.value)}
                       className="min-w-52 rounded-2xl border border-violet-200 bg-white px-4 py-3 text-sm font-medium text-gray-800 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100 disabled:cursor-not-allowed disabled:opacity-70"
                     >
@@ -244,6 +273,15 @@ export default function Usuarios() {
                         </option>
                       ))}
                     </select>
+                    <button
+                      type="button"
+                      onClick={() => void deleteUser(item.id, item.email)}
+                      disabled={item.id === user?.id || deletingId === item.id || savingId === item.id}
+                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 transition hover:border-rose-300 hover:bg-rose-100 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400"
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                      {deletingId === item.id ? "Eliminando..." : "Eliminar"}
+                    </button>
                   </div>
                 </article>
               ))}
