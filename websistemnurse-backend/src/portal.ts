@@ -73,8 +73,16 @@ router.get('/me/history', async (req: AuthRequest, res) => {
   try {
     console.log(`Fetching history for persona: ${targetPersonaId}`);
     
-    // Consulta robusta que funciona tanto con UUIDs como con IDs numéricos/planos
+    // Búsqueda multi-criterio para asegurar que encontramos el historial 
+    // sin importar si hay desajustes de IDs planos vs UUIDs
     const historyQuery = `
+      WITH target_persona AS (
+        SELECT id FROM personas 
+        WHERE id::text = $1 
+           OR cedula = $1 
+           OR codigo_institucional = $1
+        LIMIT 1
+      )
       SELECT
         c.id,
         c.creado_en,
@@ -93,16 +101,15 @@ router.get('/me/history', async (req: AuthRequest, res) => {
         p.nombres,
         p.apellidos,
         p.tipo_miembro
-      FROM personas p
-      LEFT JOIN expedientes e ON e.persona_id = p.id
-      LEFT JOIN consultas c ON c.expediente_id = e.id
-      WHERE (p.id::text = $1 OR p.cedula = $1 OR p.codigo_institucional = $1)
-        AND c.id IS NOT NULL
+      FROM target_persona tp
+      JOIN personas p ON p.id = tp.id
+      JOIN expedientes e ON e.persona_id = p.id
+      JOIN consultas c ON c.expediente_id = e.id OR c.expediente_id::text = e.id::text
       ORDER BY c.creado_en DESC
     `;
 
     const result = await pool.query(historyQuery, [targetPersonaId]);
-    console.log(`Found ${result.rows.length} history items for persona ${targetPersonaId}`);
+    console.log(`Found ${result.rows.length} history items for persona search: ${targetPersonaId}`);
     res.json(result.rows);
   } catch (error) {
     console.error('Error obteniendo historial personal:', error);
