@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_URL } from '../../../config/api';
 import { useAuth } from '../../../contexts/auth-context';
+import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 
 const LiquidEther = lazy(() => import('../../../components/LiquidEther'));
 
@@ -20,6 +21,7 @@ export default function Login() {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [showPassword, setShowPassword] = useState<boolean>(false);
   const navigate = useNavigate();
   const { login, isAuthenticated } = useAuth();
 
@@ -140,15 +142,28 @@ export default function Login() {
                     <label htmlFor="password" className="mb-2 block text-sm font-medium text-slate-200">
                       Contrasena
                     </label>
-                    <input
-                      id="password"
-                      type="password"
-                      placeholder="********"
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      className="h-12 w-full rounded-2xl border border-slate-600 bg-slate-800/70 px-4 text-white placeholder-slate-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
-                      required
-                    />
+                    <div className="relative">
+                      <input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="********"
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                        className="h-12 w-full rounded-2xl border border-slate-600 bg-slate-800/70 px-4 pr-12 text-white placeholder-slate-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 transition hover:text-white"
+                      >
+                        {showPassword ? (
+                          <EyeSlashIcon className="h-5 w-5" />
+                        ) : (
+                          <EyeIcon className="h-5 w-5" />
+                        )}
+                      </button>
+                    </div>
                   </div>
 
                   {error ? (

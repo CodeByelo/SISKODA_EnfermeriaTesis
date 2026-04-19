@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import axios from "axios";
 import { API_URL } from "../../../config/api";
 
@@ -13,6 +14,7 @@ export default function RegistroPortal() {
   });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -81,14 +83,27 @@ export default function RegistroPortal() {
               </div>
               <div>
                 <label className="mb-2 block text-sm font-medium text-violet-100">Contrasena</label>
-                <input
-                  type="password"
-                  value={formData.password}
-                  onChange={(event) => setFormData((current) => ({ ...current, password: event.target.value }))}
-                  placeholder="********"
-                  className="h-12 w-full rounded-2xl border border-white/15 bg-slate-950/30 px-4 text-white outline-none"
-                  required
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={(event) => setFormData((current) => ({ ...current, password: event.target.value }))}
+                    placeholder="********"
+                    className="h-12 w-full rounded-2xl border border-white/15 bg-slate-950/30 px-4 pr-12 text-white outline-none focus:border-violet-400"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-violet-200/50 transition hover:text-white"
+                  >
+                    {showPassword ? (
+                      <EyeSlashIcon className="h-5 w-5" />
+                    ) : (
+                      <EyeIcon className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
               </div>
               {error ? (
                 <div className="rounded-2xl border border-rose-300/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
