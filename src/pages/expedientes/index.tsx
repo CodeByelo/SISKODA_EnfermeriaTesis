@@ -8,9 +8,11 @@ import {
 } from "@heroicons/react/24/outline";
 import type { Expediente } from "./types";
 import { authFetch } from "../../lib/auth";
+import { useNotifications } from "../../contexts/notification-context";
 
 export default function Expedientes() {
   const nav = useNavigate();
+  const { notify, confirm } = useNotifications();
   const [list, setList] = useState<Expediente[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
@@ -30,7 +32,15 @@ export default function Expedientes() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Estas seguro de eliminar este expediente? Esta accion no se puede deshacer.")) {
+    const accepted = await confirm({
+      title: "Eliminar expediente",
+      message: "Esta accion no se puede deshacer y eliminara el registro clinico seleccionado.",
+      confirmLabel: "Eliminar",
+      cancelLabel: "Cancelar",
+      tone: "error",
+    });
+
+    if (!accepted) {
       return;
     }
 
@@ -40,16 +50,16 @@ export default function Expedientes() {
       });
 
       if (res.ok) {
-        setList(list.filter((item) => item.id !== id));
-        alert("Expediente eliminado correctamente.");
+        setList((current) => current.filter((item) => item.id !== id));
+        notify({ tone: "success", title: "Expediente eliminado" });
       } else {
         const errorText = await res.text();
         console.error("Error del servidor:", errorText);
-        alert("No se pudo eliminar el expediente.");
+        notify({ tone: "error", title: "No se pudo eliminar el expediente" });
       }
     } catch (err) {
       console.error(err);
-      alert("Error de conexion al intentar eliminar.");
+      notify({ tone: "error", title: "Error de conexion al intentar eliminar" });
     }
   };
 

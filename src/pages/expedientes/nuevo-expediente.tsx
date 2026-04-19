@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ExpedienteForm } from "./types";
 import { authFetch } from "../../lib/auth";
+import { useNotifications } from "../../contexts/notification-context";
 
 const nullIfEmpty = (s: string) => (s.trim() === "" ? null : s.trim());
 
@@ -20,6 +21,7 @@ const formVacio: ExpedienteForm = {
 
 export default function NuevoExpediente() {
   const nav = useNavigate();
+  const { notify } = useNotifications();
   const [form, setForm] = useState<ExpedienteForm>(formVacio);
 
   const handleChange = (
@@ -31,7 +33,7 @@ export default function NuevoExpediente() {
 
   const guardar = async () => {
     if (!form.tipo_paciente || !form.nombre.trim() || !form.apellido.trim()) {
-      alert("Tipo, nombre y apellido son obligatorios");
+      notify({ tone: "info", title: "Faltan datos obligatorios", message: "Tipo, nombre y apellido son obligatorios." });
       return;
     }
 
@@ -58,11 +60,11 @@ export default function NuevoExpediente() {
         throw new Error(error.error || "No se pudo crear el expediente");
       }
 
-      alert("Expediente creado");
+      notify({ tone: "success", title: "Expediente creado" });
       nav("/expedientes");
     } catch (err) {
       console.error(err);
-      alert(err instanceof Error ? err.message : "Error al guardar");
+      notify({ tone: "error", title: "No se pudo guardar", message: err instanceof Error ? err.message : "Error al guardar" });
     }
   };
 

@@ -9,9 +9,11 @@ import {
 } from "@heroicons/react/24/outline";
 import type { Insumo } from "./types";
 import { authFetch } from "../../lib/auth";
+import { useNotifications } from "../../contexts/notification-context";
 
 export default function Inventario() {
   const nav = useNavigate();
+  const { notify, confirm } = useNotifications();
   const [insumos, setInsumos] = useState<Insumo[]>([]);
   const [filtro, setFiltro] = useState("");
   const [loading, setLoading] = useState(true);
@@ -51,22 +53,30 @@ export default function Inventario() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Estas seguro de eliminar este insumo?")) return;
+    const accepted = await confirm({
+      title: "Eliminar insumo",
+      message: "Esta accion no se puede deshacer. Solo debes continuar si estas seguro.",
+      confirmLabel: "Eliminar",
+      cancelLabel: "Cancelar",
+      tone: "error",
+    });
+
+    if (!accepted) return;
 
     try {
       const res = await authFetch(`/api/inventario/${id}`, {
         method: "DELETE",
       });
       if (res.ok) {
-        setInsumos(insumos.filter((item) => item.id !== id));
-        alert("Insumo eliminado");
+        setInsumos((current) => current.filter((item) => item.id !== id));
+        notify({ tone: "success", title: "Insumo eliminado" });
       } else {
         const err = await res.json();
-        alert(`Error: ${err.error || "No se pudo eliminar"}`);
+        notify({ tone: "error", title: "No se pudo eliminar", message: err.error || "Revisa el estado del insumo." });
       }
     } catch (err) {
       console.error(err);
-      alert("Error de conexion");
+      notify({ tone: "error", title: "Error de conexion" });
     }
   };
 

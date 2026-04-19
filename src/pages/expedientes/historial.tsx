@@ -50,7 +50,7 @@ const formatPrintDate = (value: string) =>
 export default function HistorialPaciente() {
   const nav = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { notify } = useNotifications();
+  const { notify, confirm } = useNotifications();
   const [paciente, setPaciente] = useState<Expediente | null>(null);
   const [consultas, setConsultas] = useState<Consulta[]>([]);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
@@ -167,7 +167,15 @@ export default function HistorialPaciente() {
   };
 
   const eliminarConsulta = async (consultaId: string) => {
-    if (!confirm("¿Estás seguro de eliminar esta consulta?")) return;
+    const accepted = await confirm({
+      title: "Eliminar consulta",
+      message: "La consulta seleccionada se eliminara del historial del paciente.",
+      confirmLabel: "Eliminar",
+      cancelLabel: "Cancelar",
+      tone: "error",
+    });
+
+    if (!accepted) return;
     try {
       const res = await authFetch(`/api/consultas/${consultaId}`, {
         method: "DELETE",

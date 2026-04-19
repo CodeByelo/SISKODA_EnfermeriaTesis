@@ -3,6 +3,7 @@ import { ArrowLeftIcon, ShieldCheckIcon, TrashIcon, UserGroupIcon } from "@heroi
 import { useNavigate } from "react-router-dom";
 import { authFetch } from "../../lib/auth";
 import { useAuth } from "../../contexts/auth-context";
+import { useNotifications } from "../../contexts/notification-context";
 
 type UserRecord = {
   id: string;
@@ -35,6 +36,7 @@ const roleTone: Record<string, string> = {
 export default function Usuarios() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { notify, confirm } = useNotifications();
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -103,7 +105,15 @@ export default function Usuarios() {
   };
 
   const deleteUser = async (id: string, email: string) => {
-    if (!window.confirm(`Se eliminara la cuenta ${email}. Esta accion no se puede deshacer.`)) {
+    const accepted = await confirm({
+      title: "Eliminar usuario",
+      message: `Se eliminara la cuenta ${email}. Esta accion no se puede deshacer.`,
+      confirmLabel: "Eliminar",
+      cancelLabel: "Cancelar",
+      tone: "error",
+    });
+
+    if (!accepted) {
       return;
     }
 
@@ -122,6 +132,7 @@ export default function Usuarios() {
       }
 
       setUsers((current) => current.filter((item) => item.id !== id));
+      notify({ tone: "success", title: "Usuario eliminado" });
     } catch (deleteError) {
       console.error(deleteError);
       setError("No se pudo eliminar el usuario");
